@@ -26,12 +26,6 @@ impl fmt::Display for Token {
     }
 }
 
-impl Token {
-    fn take(&mut self) -> Token {
-        std::mem::replace(self, Token::EndOfFile)
-    }
-}
-
 pub struct Tokenizer {
     input: String,
     idx: usize,
@@ -205,15 +199,14 @@ impl Parser {
     }
 
     fn expect_ident(&mut self) -> Result<String> {
-        if let Token::Ident(name) = self.tok.take() {
+        if let Token::Ident(name) = &self.tok {
+            let name = name.clone();
             self.next_tok()?;
             Ok(name)
         } else {
-            Err(self.tokenizer.error(&format!(
-                "expected {}, found {:?}",
-                stringify!(Token::Ident(_)),
-                self.tok,
-            )))
+            Err(self
+                .tokenizer
+                .error(&format!("expected <idenfifier>, found {}", self.tok,)))
         }
     }
 
@@ -224,7 +217,12 @@ impl Parser {
             is_ptr = true;
             self.next_tok()?;
         }
-        let type_str = self.expect_ident()?;
+        if !matches!(self.tok, Token::Ident(_)) {
+            return Err(self
+                .tokenizer
+                .error(&format!("expected <typename>, found {}", self.tok,)));
+        }
+        let type_str = self.expect_ident().unwrap(); // already checked
         let base = match &type_str as &str {
             "u8" => BaseType::U8,
             "i8" => BaseType::I8,
