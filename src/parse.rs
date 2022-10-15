@@ -164,9 +164,15 @@ pub struct Parser {
 macro_rules! expect {
     ($self: expr, $expr: pat) => {
         if !matches!($self.tok, $expr) {
-            panic!("Expected {}, found {:?}", stringify!($expr), $self.tok);
+            Err($self.tokenizer.error(&format!(
+                "expected {}, found {:?}",
+                stringify!($expr),
+                $self.tok
+            )))
+        } else {
+            $self.next_tok()?;
+            Ok(())
         }
-        $self.next_tok()?;
     };
 }
 
@@ -227,7 +233,7 @@ impl Parser {
             return Ok(None);
         }
         let name = self.expect_ident()?;
-        expect!(self, Token::Punc(':'));
+        expect!(self, Token::Punc(':'))?;
         let typ = self.parse_type()?;
         Ok(Some(Field { name, typ }))
     }
@@ -266,27 +272,27 @@ impl Parser {
     fn parse_version(&mut self) -> Result<usize> {
         let v = self.expect_ident()?;
         if v.chars().next() != Some('v') {
-            panic!("Not version identifier");
+            return Err(self.tokenizer.error("not a version identifier"));
         }
         let version: usize = match v[1..].parse() {
             Ok(v) => v,
-            Err(_) => panic!("Failed to parse version number"),
+            Err(_) => return Err(self.tokenizer.error("not a version number")),
         };
         return Ok(version);
     }
 
     // func = "fn" "(" ident ")" ident "(" args ")" ret
     fn parse_fn(&mut self) -> Result<Decl> {
-        expect!(self, Token::Fn);
-        expect!(self, Token::Punc('('));
+        expect!(self, Token::Fn)?;
+        expect!(self, Token::Punc('('))?;
         let version = self.parse_version()?;
-        expect!(self, Token::Punc(')'));
+        expect!(self, Token::Punc(')'))?;
         let name = self.expect_ident()?;
-        expect!(self, Token::Punc('('));
+        expect!(self, Token::Punc('('))?;
         let args = self.parse_fields()?;
-        expect!(self, Token::Punc(')'));
+        expect!(self, Token::Punc(')'))?;
         let ret = self.parse_ret()?;
-        expect!(self, Token::Punc(';'));
+        expect!(self, Token::Punc(';'))?;
         Ok(Decl::Fn(FuncDecl {
             name,
             args,
@@ -297,11 +303,11 @@ impl Parser {
 
     // struct = "struct" ident "{" fields "}"
     fn parse_struct(&mut self) -> Result<Decl> {
-        expect!(self, Token::Struct);
+        expect!(self, Token::Struct)?;
         let name = self.expect_ident()?;
-        expect!(self, Token::Punc('{'));
+        expect!(self, Token::Punc('{'))?;
         let fields = self.parse_fields()?;
-        expect!(self, Token::Punc('}'));
+        expect!(self, Token::Punc('}'))?;
         Ok(Decl::Struct(StructDecl { name, fields }))
     }
 
@@ -319,7 +325,7 @@ impl Parser {
         while let Some(decl) = self.maybe_parse_decl()? {
             api.decls.push(decl);
         }
-        expect!(self, Token::EndOfFile);
+        expect!(self, Token::EndOfFile)?;
         Ok(api)
     }
 }
