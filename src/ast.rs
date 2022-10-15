@@ -13,7 +13,7 @@ pub enum Decl {
 pub struct FuncDecl {
     pub name: String,
     pub args: Vec<Field>,
-    pub ret: Type,
+    pub ret: ReturnType,
     pub version: usize,
 }
 
@@ -30,10 +30,16 @@ pub struct Field {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Type {
+pub enum ReturnType {
     None,
-    Pointer(BaseType),
-    Value(BaseType),
+    Some(Type),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Type {
+    Pointer(Box<Type>),
+    Array(Box<Type>, u64),
+    Base(BaseType),
 }
 
 #[derive(Debug, PartialEq)]

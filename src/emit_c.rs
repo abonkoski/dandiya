@@ -1,31 +1,46 @@
 use crate::ast::*;
 
-fn type_str(t: &Type) -> String {
-    let (base, is_ptr) = match t {
-        Type::None => return "void".to_string(),
-        Type::Pointer(base) => (base, true),
-        Type::Value(base) => (base, false),
-    };
-
-    let base_str = match base {
-        BaseType::Struct(s) => format!("struct {}", s),
-        BaseType::U8 => "uint8_t".to_string(),
-        BaseType::I8 => "int8_t".to_string(),
-        BaseType::U16 => "uint16_t".to_string(),
-        BaseType::I16 => "int16_t".to_string(),
-        BaseType::U32 => "uint32_t".to_string(),
-        BaseType::I32 => "int32_t".to_string(),
-        BaseType::U64 => "uint64_t".to_string(),
-        BaseType::I64 => "int64_t".to_string(),
-    };
-
-    let mut s = String::new();
-    s += &base_str;
-    if is_ptr {
-        s += " *";
+// Returns (front-part, back-part)
+fn type_str(t: &Type) -> (String, String) {
+    match t {
+        Type::Pointer(subtype) => {
+            let (front, back) = type_str(subtype);
+            (front + "*", back)
+        }
+        Type::Array(subtype, len) => {
+            let (front, back) = type_str(subtype);
+            (front, format!("{}[{}]", back, len))
+        }
+        Type::Base(base) => {
+            let s = match base {
+                BaseType::Struct(s) => format!("{}_t", s),
+                BaseType::U8 => "uint8_t".to_string(),
+                BaseType::I8 => "int8_t".to_string(),
+                BaseType::U16 => "uint16_t".to_string(),
+                BaseType::I16 => "int16_t".to_string(),
+                BaseType::U32 => "uint32_t".to_string(),
+                BaseType::I32 => "int32_t".to_string(),
+                BaseType::U64 => "uint64_t".to_string(),
+                BaseType::I64 => "int64_t".to_string(),
+            };
+            (s, "".to_string())
+        }
     }
+}
 
-    s
+fn field_str(f: &Field) -> String {
+    let (front, back) = type_str(&f.typ);
+    format!("{} {}{}", front, f.name, back)
+}
+
+fn ret_str(t: &ReturnType) -> String {
+    match t {
+        ReturnType::None => "void".to_string(),
+        ReturnType::Some(t) => {
+            let (f, b) = type_str(t);
+            f + &b
+        }
+    }
 }
 
 fn args_str(args: &[Field]) -> String {
@@ -34,7 +49,7 @@ fn args_str(args: &[Field]) -> String {
         if !s.is_empty() {
             s += ", ";
         }
-        s += &format!("{} {}", type_str(&f.typ), f.name);
+        s += &field_str(f);
     }
     s
 }
@@ -42,7 +57,7 @@ fn args_str(args: &[Field]) -> String {
 fn emit_fn(decl: &FuncDecl) {
     println!(
         "{} {}_v{}({});",
-        type_str(&decl.ret),
+        ret_str(&decl.ret),
         decl.name,
         decl.version,
         args_str(&decl.args)
@@ -50,9 +65,10 @@ fn emit_fn(decl: &FuncDecl) {
 }
 
 fn emit_struct(decl: &StructDecl) {
+    println!("typedef struct {} {}_t", decl.name, decl.name);
     println!("struct {} {{", decl.name);
     for f in &decl.fields {
-        println!("    {:10} {};", type_str(&f.typ), f.name);
+        println!("    {};", field_str(f));
     }
     println!("}}");
 }

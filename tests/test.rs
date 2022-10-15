@@ -44,6 +44,38 @@ fn test_tok_ident() {
 }
 
 #[test]
+fn test_tok_num() {
+    let mut tok = Tokenizer::new("0", None);
+    assert_eq!(tok.next_tok().unwrap(), Token::U64(0));
+    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+
+    let mut tok = Tokenizer::new("123", None);
+    assert_eq!(tok.next_tok().unwrap(), Token::U64(123));
+    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+
+    let mut tok = Tokenizer::new("123456", None);
+    assert_eq!(tok.next_tok().unwrap(), Token::U64(123456));
+    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+
+    let mut tok = Tokenizer::new("123 456", None);
+    assert_eq!(tok.next_tok().unwrap(), Token::U64(123));
+    assert_eq!(tok.next_tok().unwrap(), Token::U64(456));
+    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+
+    let mut tok = Tokenizer::new("18446744073709551615", None);
+    assert_eq!(tok.next_tok().unwrap(), Token::U64(18446744073709551615));
+    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+
+    // overflow u64
+    let mut tok = Tokenizer::new("18446744073709551616", None);
+    tok.next_tok().err().unwrap();
+
+    // negative numbers not allowed currently
+    let mut tok = Tokenizer::new("-1", None);
+    tok.next_tok().err().unwrap();
+}
+
+#[test]
 fn test_tok_ident_and_punc() {
     let mut tok = Tokenizer::new("_blah,foo23", None);
     assert_eq!(tok.next_tok().unwrap(), Token::Ident("_blah".to_string()));
@@ -115,6 +147,48 @@ fn test_parse_struct() {
         foo: u8,
         bar: i32,
         baz: u16,
+      }
+     ";
+    parse(s, None).unwrap();
+}
+
+#[test]
+fn test_parse_struct_with_ptr() {
+    let s = "\
+      struct Foobar {
+        foo: u8,
+        bar: *i32,
+        baz: u16,
+      }
+     ";
+    parse(s, None).unwrap();
+}
+
+#[test]
+fn test_parse_struct_with_array() {
+    let s = "\
+      struct Foobar {
+        foo: u8,
+        bar: i32,
+        baz: u16,
+        arr: [u64; 42],
+      }
+     ";
+    parse(s, None).unwrap();
+}
+
+#[test]
+fn test_parse_struct_with_complex_types() {
+    let s = "\
+      struct Baz {
+        ptr: *u8,
+      }
+      struct Foobar {
+        foo: u8,
+        bar: i32,
+        baz: u16,
+        arr: [u64; 42],
+        complex: **[*[*Baz; 2]; 42],
       }
      ";
     parse(s, None).unwrap();

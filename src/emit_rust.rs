@@ -1,31 +1,31 @@
 use crate::ast::*;
 
 fn type_str(t: &Type) -> String {
-    let (base, is_ptr) = match t {
-        Type::None => return "()".to_string(),
-        Type::Pointer(base) => (base, true),
-        Type::Value(base) => (base, false),
-    };
-
-    let base_str = match base {
-        BaseType::Struct(s) => s,
-        BaseType::U8 => "u8",
-        BaseType::I8 => "i8",
-        BaseType::U16 => "u16",
-        BaseType::I16 => "i16",
-        BaseType::U32 => "u32",
-        BaseType::I32 => "i32",
-        BaseType::U64 => "u64",
-        BaseType::I64 => "i64",
-    };
-
-    let mut s = String::new();
-    if is_ptr {
-        s += "*mut ";
+    match t {
+        Type::Pointer(subtype) => format!("*mut {}", type_str(subtype)),
+        Type::Array(subtype, len) => {
+            format!("[{}; {}]", type_str(subtype), len)
+        }
+        Type::Base(base) => match base {
+            BaseType::Struct(s) => s,
+            BaseType::U8 => "u8",
+            BaseType::I8 => "i8",
+            BaseType::U16 => "u16",
+            BaseType::I16 => "i16",
+            BaseType::U32 => "u32",
+            BaseType::I32 => "i32",
+            BaseType::U64 => "u64",
+            BaseType::I64 => "i64",
+        }
+        .to_string(),
     }
-    s += base_str;
+}
 
-    s
+fn ret_str(t: &ReturnType) -> String {
+    match t {
+        ReturnType::None => "".to_string(),
+        ReturnType::Some(t) => format!(" -> {}", type_str(t)),
+    }
 }
 
 fn args_str(args: &[Field]) -> String {
@@ -37,13 +37,6 @@ fn args_str(args: &[Field]) -> String {
         s += &format!("{}: {}", f.name, type_str(&f.typ));
     }
     s
-}
-
-fn ret_str(ret: &Type) -> String {
-    if ret == &Type::None {
-        return "".to_string();
-    }
-    format!(" -> {}", &type_str(ret))
 }
 
 fn emit_fn(decl: &FuncDecl) {

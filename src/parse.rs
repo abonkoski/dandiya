@@ -4,24 +4,26 @@ use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
+    EndOfFile,
     Ident(String),
+    U64(u64),
     Fn,
     Struct,
     Arrow,
     Punc(char),
-    EndOfFile,
 }
 
 #[rustfmt::skip]
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Token::EndOfFile => write!(f, "<end-of-file>"),
             Token::Ident(_)  => write!(f, "<identifier>"),
+            Token::U64(_)    => write!(f, "<u64>"),
             Token::Fn        => write!(f, "'fn'"),
             Token::Struct    => write!(f, "'struct'"),
             Token::Arrow     => write!(f, "'->'"),
             Token::Punc(c)   => write!(f, "'{}'", c),
-            Token::EndOfFile => write!(f, "<end-of-file>"),
         }
     }
 }
@@ -95,6 +97,27 @@ impl Tokenizer {
             if is_punc(c) {
                 self.advance_char();
                 return Ok(Token::Punc(c));
+            }
+
+            // parse u64 number
+            if c.is_ascii_digit() {
+                while let Some(c) = self.peek_char() {
+                    if !c.is_ascii_digit() {
+                        break;
+                    }
+                    self.advance_char();
+                }
+                let s = &self.input[self.tok_idx..self.idx];
+                let n: u64 = match s.parse() {
+                    Ok(n) => n,
+                    Err(_) => {
+                        return Err(self.error(&format!(
+                            "tokenizer read a number that was too large for u64: '{}'",
+                            s
+                        )));
+                    }
+                };
+                return Ok(Token::U64(n));
             }
 
             // parse identifier or keyword
@@ -204,19 +227,28 @@ impl Parser {
             self.next_tok()?;
             Ok(name)
         } else {
-            Err(self
-                .tokenizer
-                .error(&format!("expected <idenfifier>, found {}", self.tok,)))
+            Err(self.tokenizer.error(&format!(
+                "expected {}, found {}",
+                Token::Ident("".to_string()),
+                self.tok,
+            )))
         }
     }
 
-    // type = "*"? base_type
-    fn parse_type(&mut self) -> Result<Type> {
-        let mut is_ptr = false;
-        if matches!(self.tok, Token::Punc('*')) {
-            is_ptr = true;
+    fn expect_u64(&mut self) -> Result<u64> {
+        if let Token::U64(num) = &self.tok {
+            let num = *num;
             self.next_tok()?;
+            Ok(num)
+        } else {
+            Err(self
+                .tokenizer
+                .error(&format!("expected {}, found {}", Token::U64(0), self.tok,)))
         }
+    }
+
+    // basetype = ident | "u8" | "i8" | ... etc ...
+    fn parse_basetype(&mut self) -> Result<BaseType> {
         if !matches!(self.tok, Token::Ident(_)) {
             return Err(self
                 .tokenizer
@@ -234,10 +266,25 @@ impl Parser {
             "i64" => BaseType::I64,
             _ => BaseType::Struct(type_str),
         };
-        if is_ptr {
-            Ok(Type::Pointer(base))
+        Ok(base)
+    }
+
+    // type = "*" type | "[" type ";" number "]" basetype
+    fn parse_type(&mut self) -> Result<Type> {
+        if matches!(self.tok, Token::Punc('*')) {
+            self.next_tok()?;
+            let typ = self.parse_type()?;
+            Ok(Type::Pointer(Box::new(typ)))
+        } else if matches!(self.tok, Token::Punc('[')) {
+            self.next_tok()?;
+            let typ = self.parse_type()?;
+            self.expect(Token::Punc(';'))?;
+            let num = self.expect_u64()?;
+            self.expect(Token::Punc(']'))?;
+            Ok(Type::Array(Box::new(typ), num))
         } else {
-            Ok(Type::Value(base))
+            let typ = self.parse_basetype()?;
+            Ok(Type::Base(typ))
         }
     }
 
@@ -274,12 +321,13 @@ impl Parser {
     }
 
     // ret = ("->" type)?
-    fn parse_ret(&mut self) -> Result<Type> {
+    fn parse_ret(&mut self) -> Result<ReturnType> {
         if !matches!(self.tok, Token::Arrow) {
-            return Ok(Type::None);
+            return Ok(ReturnType::None);
         }
         self.next_tok()?;
-        self.parse_type()
+        let typ = self.parse_type()?;
+        Ok(ReturnType::Some(typ))
     }
 
     // version = "v" number
