@@ -191,5 +191,26 @@ fn test_parse_struct_with_complex_types() {
         complex: **[*[*Baz; 2]; 42],
       }
      ";
+    // Parse rejects complex types that C can't handle
+    parse(s, None).err().unwrap();
+}
+
+#[test]
+fn test_parse_return_types() {
+    let s = "\
+       fn(v1) foo() -> *u64;
+     ";
     parse(s, None).unwrap();
+
+    let s = "\
+       fn(v1) foo() -> [u64; 67];
+     ";
+    // Parse rejects array return types that C can't handle
+    parse(s, None).err().unwrap();
+
+    let s = "\
+       fn(v1) foo() -> *[u64; 67];
+     ";
+    // Parse rejects array return types that C can't handle
+    parse(s, None).err().unwrap();
 }
