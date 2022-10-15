@@ -271,21 +271,29 @@ impl Parser {
 
     // type = "*" type | "[" type ";" number "]" basetype
     fn parse_type(&mut self) -> Result<Type> {
-        if matches!(self.tok, Token::Punc('*')) {
+        let typ = if matches!(self.tok, Token::Punc('*')) {
             self.next_tok()?;
             let typ = self.parse_type()?;
-            Ok(Type::Pointer(Box::new(typ)))
+            Type::Pointer(Box::new(typ))
         } else if matches!(self.tok, Token::Punc('[')) {
             self.next_tok()?;
             let typ = self.parse_type()?;
             self.expect(Token::Punc(';'))?;
             let num = self.expect_u64()?;
             self.expect(Token::Punc(']'))?;
-            Ok(Type::Array(Box::new(typ), num))
+            Type::Array(Box::new(typ), num)
         } else {
             let typ = self.parse_basetype()?;
-            Ok(Type::Base(typ))
+            Type::Base(typ)
+        };
+
+        if !type_is_sane_for_c(&typ) {
+            return Err(self
+                .tokenizer
+                .error("type is too complex to express in C code"));
         }
+
+        Ok(typ)
     }
 
     // field = ident ":" type
@@ -327,6 +335,11 @@ impl Parser {
         }
         self.next_tok()?;
         let typ = self.parse_type()?;
+        if type_is_array_recursively(&typ) {
+            return Err(self
+                .tokenizer
+                .error("return type is not allowed to be an array"));
+        }
         Ok(ReturnType::Some(typ))
     }
 
@@ -389,6 +402,33 @@ impl Parser {
         }
         self.expect(Token::EndOfFile)?;
         Ok(api)
+    }
+}
+
+// Retricts allowed types such that they can be sanely representable in C
+fn type_is_sane_for_c(t: &Type) -> bool {
+    match t {
+        Type::Array(subtype, _) => {
+            // If the type is an array, don't allow subtypes to be array
+            // multi-dim array support in C is sad, so just don't do it
+            !type_is_array_recursively(subtype)
+        }
+        Type::Pointer(subtype) => {
+            // Pointers to arrays are wierd in C because of array to
+            // pointer decay. Even in type signatures where the syntax
+            // is allowed, it's actually just a pointer. C doesn't actually
+            // have a semantic concept of pointers to arrays
+            !type_is_array_recursively(subtype)
+        }
+        Type::Base(_) => true, // always sane
+    }
+}
+
+fn type_is_array_recursively(t: &Type) -> bool {
+    match t {
+        Type::Array(_, _) => true,
+        Type::Pointer(subtype) => type_is_array_recursively(subtype),
+        Type::Base(_) => false,
     }
 }
 

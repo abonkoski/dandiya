@@ -1,0 +1,12 @@
+
+struct demo_packet {
+  len: u16,
+  dat: [u8; 1500],
+}
+
+struct demo_batch {
+  num: u8,
+  pkts: [packet; 16],
+}
+
+fn(v1) demo_fetch_packet_batch(b: *demo_batch);
