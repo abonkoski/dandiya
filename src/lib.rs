@@ -4,6 +4,7 @@ mod parse;
 pub use parse::*;
 
 pub mod emit_c;
+pub mod emit_rust;
 
 #[derive(Debug)]
 pub enum Error {

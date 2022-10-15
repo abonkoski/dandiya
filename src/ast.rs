@@ -29,14 +29,14 @@ pub struct Field {
     pub typ: Type,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Type {
     None,
     Pointer(BaseType),
     Value(BaseType),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum BaseType {
     Struct(String),
     U8,
