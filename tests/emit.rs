@@ -1,19 +1,10 @@
 use dandiya::emit::*;
 use dandiya::parse::*;
 
-fn c_preamble() -> String {
-    "\
-#pragma once
-#include <stdint.h>
-
-"
-    .to_string()
-}
-
 fn check(src: &str, emit_c: &str, emit_rust: &str) {
     let api = parse(src, None).unwrap();
     let c = emit(&api, Language::C);
-    assert_eq!(c, c_preamble() + emit_c + "\n");
+    assert_eq!(c, c::PREAMBLE.to_string() + "\n" + emit_c + "\n");
     let rust = emit(&api, Language::Rust);
     assert_eq!(rust, emit_rust.to_string() + "\n");
 }
@@ -44,6 +35,7 @@ struct name {
 };";
 
     let rust = "\
+#[repr(C)]
 struct name {
   foo: *mut u64,
   bar: [u16; 4],
@@ -74,6 +66,7 @@ uint8_t do_thing_v1(data_t* dat);
 uint8_t* do_thing_v2(data_t* dat, uint16_t p);";
 
     let rust = "\
+#[repr(C)]
 struct data {
   foo: i32,
   bar: i8,

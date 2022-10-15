@@ -1,5 +1,20 @@
 use crate::ast::*;
 
+pub const PREAMBLE: &str = "\
+#pragma once
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern \"C\" {
+#endif
+";
+
+pub const POSTAMBLE: &str = "
+#ifdef __cplusplus
+}
+#endif
+";
+
 // Returns (front-part, back-part)
 fn type_str(t: &Type) -> (String, String) {
     match t {
@@ -75,8 +90,7 @@ fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Re
 }
 
 pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
-    write!(out, "#pragma once\n")?;
-    write!(out, "#include <stdint.h>\n")?;
+    write!(out, "{}", PREAMBLE)?;
     write!(out, "\n")?;
     for decl in &defn.decls {
         match decl {
@@ -84,5 +98,6 @@ pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
             Decl::Struct(decl) => emit_struct(out, decl)?,
         }
     }
+    write!(out, "{}", POSTAMBLE)?;
     Ok(())
 }

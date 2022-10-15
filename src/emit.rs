@@ -1,7 +1,7 @@
 use super::ast::ApiDefn;
 
-mod c;
-mod rust;
+pub mod c;
+pub mod rust;
 
 pub enum Language {
     C,
