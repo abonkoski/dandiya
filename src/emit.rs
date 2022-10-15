@@ -8,9 +8,11 @@ pub enum Language {
     Rust,
 }
 
-pub fn emit(api: &ApiDefn, lang: Language) {
+pub fn emit(api: &ApiDefn, lang: Language) -> String {
+    let mut out = String::new();
     match lang {
-        Language::C => c::emit(api),
-        Language::Rust => rust::emit(api),
+        Language::C => c::emit(&mut out, api).unwrap(),
+        Language::Rust => rust::emit(&mut out, api).unwrap(),
     }
+    out
 }

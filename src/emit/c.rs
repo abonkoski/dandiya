@@ -54,33 +54,35 @@ fn args_str(args: &[Field]) -> String {
     s
 }
 
-fn emit_fn(decl: &FuncDecl) {
-    println!(
-        "{} {}_v{}({});",
+fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
+    write!(
+        out,
+        "{} {}_v{}({});\n",
         ret_str(&decl.ret),
         decl.name,
         decl.version,
         args_str(&decl.args)
-    );
+    )
 }
 
-fn emit_struct(decl: &StructDecl) {
-    println!("typedef struct {} {}_t", decl.name, decl.name);
-    println!("struct {} {{", decl.name);
+fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Result {
+    write!(out, "typedef struct {} {}_t\n", decl.name, decl.name)?;
+    write!(out, "struct {} {{\n", decl.name)?;
     for f in &decl.fields {
-        println!("    {};", field_str(f));
+        write!(out, "    {};\n", field_str(f))?;
     }
-    println!("}}");
+    write!(out, "}}\n")
 }
 
-pub fn emit(defn: &ApiDefn) {
-    println!("#pragma once");
-    println!("#include <stdint.h>");
-    println!("");
+pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
+    write!(out, "#pragma once\n")?;
+    write!(out, "#include <stdint.h>\n")?;
+    write!(out, "\n")?;
     for decl in &defn.decls {
         match decl {
-            Decl::Fn(decl) => emit_fn(decl),
-            Decl::Struct(decl) => emit_struct(decl),
+            Decl::Fn(decl) => emit_fn(out, decl)?,
+            Decl::Struct(decl) => emit_struct(out, decl)?,
         }
     }
+    Ok(())
 }

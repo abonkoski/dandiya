@@ -39,29 +39,31 @@ fn args_str(args: &[Field]) -> String {
     s
 }
 
-fn emit_fn(decl: &FuncDecl) {
-    println!(
-        "fn {}_v{}({}){}",
+fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
+    write!(
+        out,
+        "fn {}_v{}({}){}\n",
         decl.name,
         decl.version,
         args_str(&decl.args),
         ret_str(&decl.ret)
-    );
+    )
 }
 
-fn emit_struct(decl: &StructDecl) {
-    println!("struct {} {{", decl.name);
+fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Result {
+    write!(out, "struct {} {{\n", decl.name)?;
     for f in &decl.fields {
-        println!("    {}: {},", f.name, type_str(&f.typ));
+        write!(out, "    {}: {},\n", f.name, type_str(&f.typ))?;
     }
-    println!("}}");
+    write!(out, "}}\n")
 }
 
-pub fn emit(defn: &ApiDefn) {
+pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
     for decl in &defn.decls {
         match decl {
-            Decl::Fn(decl) => emit_fn(decl),
-            Decl::Struct(decl) => emit_struct(decl),
+            Decl::Fn(decl) => emit_fn(out, decl)?,
+            Decl::Struct(decl) => emit_struct(out, decl)?,
         }
     }
+    Ok(())
 }
