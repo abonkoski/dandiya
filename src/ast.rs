@@ -14,10 +14,10 @@ pub enum Decl {
 }
 
 impl Decl {
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> String {
         match self {
-            Decl::Fn(decl) => &decl.name,
-            Decl::Struct(decl) => &decl.name,
+            Decl::Fn(decl) => format!("{}_v{}", decl.name, decl.version),
+            Decl::Struct(decl) => decl.name.clone(),
         }
     }
 }

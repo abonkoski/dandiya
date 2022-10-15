@@ -142,6 +142,9 @@ fn parse_fn_with_args_and_ret_and_ptrs() {
 
 #[test]
 fn parse_struct() {
+    let s = "struct A {}";
+    parse(s, None).unwrap();
+
     let s = "\
       struct Foobar {
         foo: u8,
@@ -212,5 +215,11 @@ fn parse_return_types() {
        fn(v1) foo() -> *[u64; 67];
      ";
     // Parse rejects array return types that C can't handle
+    parse(s, None).err().unwrap();
+}
+
+#[test]
+fn parse_duplicate_symbols() {
+    let s = "struct A {} struct A {}";
     parse(s, None).err().unwrap();
 }

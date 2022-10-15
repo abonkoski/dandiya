@@ -405,14 +405,13 @@ impl Parser {
         };
         while let Some(decl) = self.maybe_parse_decl()? {
             let decl = Rc::new(decl);
-            let name = decl.name().to_string();
+            let name = decl.name();
 
-            // FIXME
-            // if api.symbols.contains_key(&name) {
-            //     return Err(self
-            //         .tokenizer
-            //         .error(&format!("duplicate symbol '{}'", name)));
-            // }
+            if api.symbols.contains_key(&name) {
+                return Err(self
+                    .tokenizer
+                    .error(&format!("duplicate symbol '{}'", name)));
+            }
 
             api.symbols.insert(name, decl.clone());
             api.decls.push(decl);
