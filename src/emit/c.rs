@@ -81,19 +81,33 @@ fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
 }
 
 fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Result {
-    write!(out, "typedef struct {} {}_t;\n", decl.name, decl.name)?;
     write!(out, "struct {} {{\n", decl.name)?;
     for f in &decl.fields {
         write!(out, "  {};\n", field_str(f))?;
     }
-    write!(out, "}};\n")
+    write!(out, "}};\n")?;
+    write!(out, "\n")
+}
+
+fn emit_typedef(out: &mut dyn std::fmt::Write, name: &str) -> std::fmt::Result {
+    write!(out, "typedef struct {} {}_t;\n", name, name)
 }
 
 pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
     write!(out, "{}", PREAMBLE)?;
     write!(out, "\n")?;
+
+    // emit typedefs
     for decl in &defn.decls {
-        match decl {
+        if let Decl::Struct(decl) = decl.as_ref() {
+            emit_typedef(out, &decl.name)?;
+        }
+    }
+    write!(out, "\n")?;
+
+    // emit decls
+    for decl in &defn.decls {
+        match decl.as_ref() {
             Decl::Fn(decl) => emit_fn(out, decl)?,
             Decl::Struct(decl) => emit_struct(out, decl)?,
         }

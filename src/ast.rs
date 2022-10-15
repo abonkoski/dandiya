@@ -1,12 +1,25 @@
+use std::collections::HashMap;
+use std::rc::Rc;
+
 #[derive(Debug)]
 pub struct ApiDefn {
-    pub decls: Vec<Decl>,
+    pub symbols: HashMap<String, Rc<Decl>>,
+    pub decls: Vec<Rc<Decl>>,
 }
 
 #[derive(Debug)]
 pub enum Decl {
     Fn(FuncDecl),
     Struct(StructDecl),
+}
+
+impl Decl {
+    pub fn name(&self) -> &str {
+        match self {
+            Decl::Fn(decl) => &decl.name,
+            Decl::Struct(decl) => &decl.name,
+        }
+    }
 }
 
 #[derive(Debug)]

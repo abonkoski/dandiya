@@ -1,6 +1,9 @@
 use crate::ast::*;
 use crate::{Error, Result};
+
+use std::collections::HashMap;
 use std::fmt;
+use std::rc::Rc;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -396,8 +399,22 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<ApiDefn> {
-        let mut api = ApiDefn { decls: vec![] };
+        let mut api = ApiDefn {
+            symbols: HashMap::new(),
+            decls: vec![],
+        };
         while let Some(decl) = self.maybe_parse_decl()? {
+            let decl = Rc::new(decl);
+            let name = decl.name().to_string();
+
+            // FIXME
+            // if api.symbols.contains_key(&name) {
+            //     return Err(self
+            //         .tokenizer
+            //         .error(&format!("duplicate symbol '{}'", name)));
+            // }
+
+            api.symbols.insert(name, decl.clone());
             api.decls.push(decl);
         }
         self.expect(Token::EndOfFile)?;

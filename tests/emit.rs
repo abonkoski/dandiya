@@ -15,7 +15,7 @@ fn check(src: &str, emit_c: &str, emit_rust: &str) {
 #[test]
 fn emit_simple_func() {
     let src = "fn(v1) my_func(a: u8, b: u16) -> u64;";
-    let c = "uint64_t my_func_v1(uint8_t a, uint16_t b);";
+    let c = "\nuint64_t my_func_v1(uint8_t a, uint16_t b);";
     let rust = "extern \"C\" fn my_func_v1(a: u8, b: u16) -> u64;";
     check(src, &c, rust);
 }
@@ -31,11 +31,13 @@ struct name {
 
     let c = "\
 typedef struct name name_t;
+
 struct name {
   uint64_t* foo;
   uint16_t bar[4];
   uint8_t** baz[8];
-};";
+};
+";
 
     let rust = "\
 #[repr(C)]
@@ -61,10 +63,12 @@ fn (v2) do_thing(dat: *data, p: u16) -> *u8;
 
     let c = "\
 typedef struct data data_t;
+
 struct data {
   int32_t foo;
   int8_t bar;
 };
+
 uint8_t do_thing_v1(data_t* dat);
 uint8_t* do_thing_v2(data_t* dat, uint16_t p);";
 

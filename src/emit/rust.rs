@@ -61,7 +61,7 @@ fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Re
 
 pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
     for decl in &defn.decls {
-        match decl {
+        match decl.as_ref() {
             Decl::Fn(decl) => emit_fn(out, decl)?,
             Decl::Struct(decl) => emit_struct(out, decl)?,
         }
