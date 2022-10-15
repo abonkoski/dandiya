@@ -58,6 +58,9 @@ fn emit_struct(decl: &StructDecl) {
 }
 
 pub fn emit(defn: &ApiDefn) {
+    println!("#pragma once");
+    println!("#include <stdint.h>");
+    println!("");
     for decl in &defn.decls {
         match decl {
             Decl::Fn(decl) => emit_fn(decl),
