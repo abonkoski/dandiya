@@ -4,7 +4,10 @@ use dandiya::parse::*;
 fn check(src: &str, emit_c: &str, emit_rust: &str) {
     let api = parse(src, None).unwrap();
     let c = emit(&api, Language::C);
-    assert_eq!(c, c::PREAMBLE.to_string() + "\n" + emit_c + "\n");
+    assert_eq!(
+        c,
+        c::PREAMBLE.to_string() + "\n" + emit_c + "\n" + c::POSTAMBLE
+    );
     let rust = emit(&api, Language::Rust);
     assert_eq!(rust, emit_rust.to_string() + "\n");
 }
