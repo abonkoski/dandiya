@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::{Error, Result};
+use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -11,6 +12,20 @@ pub enum Token {
     EndOfFile,
 }
 
+#[rustfmt::skip]
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Token::Ident(_)  => write!(f, "<identifier>"),
+            Token::Fn        => write!(f, "'fn'"),
+            Token::Struct    => write!(f, "'struct'"),
+            Token::Arrow     => write!(f, "'->'"),
+            Token::Punc(c)   => write!(f, "'{}'", c),
+            Token::EndOfFile => write!(f, "<end-of-file>"),
+        }
+    }
+}
+
 impl Token {
     fn take(&mut self) -> Token {
         std::mem::replace(self, Token::EndOfFile)
@@ -20,6 +35,7 @@ impl Token {
 pub struct Tokenizer {
     input: String,
     idx: usize,
+    tok_idx: usize,
     line_start_idx: usize,
     line_num: usize,
     srcname: Option<String>,
@@ -30,6 +46,7 @@ impl Tokenizer {
         Self {
             input: inp.to_string(),
             idx: 0,
+            tok_idx: 0,
             line_start_idx: 0,
             line_num: 1,
             srcname: srcname.map(str::to_string),
@@ -49,6 +66,8 @@ impl Tokenizer {
 
     pub fn next_tok(&mut self) -> Result<Token> {
         loop {
+            self.tok_idx = self.idx;
+
             let c = match self.peek_char() {
                 Some(c) => c,
                 None => return Ok(Token::EndOfFile),
@@ -119,7 +138,8 @@ impl Tokenizer {
     }
 
     fn error(&self, msg: &str) -> Error {
-        let line_off = self.idx - self.line_start_idx;
+        let tok_idx = self.tok_idx;
+        let line_off = tok_idx - self.line_start_idx;
         let mut s = String::new();
         s += &format!(
             "{}:{}:{}: {}\n",
@@ -129,7 +149,7 @@ impl Tokenizer {
             msg
         );
         s += &format!("  {}\n", self.current_line());
-        s += &format!("  {0:1$}^\n", "", self.idx - self.line_start_idx);
+        s += &format!("  {0:1$}^\n", "", tok_idx - self.line_start_idx);
         Error::ParseFailure(s)
     }
 }
@@ -161,21 +181,6 @@ pub struct Parser {
     tok: Token,
 }
 
-macro_rules! expect {
-    ($self: expr, $expr: pat) => {
-        if !matches!($self.tok, $expr) {
-            Err($self.tokenizer.error(&format!(
-                "expected {}, found {:?}",
-                stringify!($expr),
-                $self.tok
-            )))
-        } else {
-            $self.next_tok()?;
-            Ok(())
-        }
-    };
-}
-
 impl Parser {
     pub fn new(inp: &str, srcname: Option<&str>) -> Result<Self> {
         let mut tokenizer = Tokenizer::new(inp, srcname);
@@ -186,6 +191,17 @@ impl Parser {
     fn next_tok(&mut self) -> Result<()> {
         self.tok = self.tokenizer.next_tok()?;
         Ok(())
+    }
+
+    fn expect(&mut self, expected: Token) -> Result<()> {
+        if self.tok != expected {
+            Err(self
+                .tokenizer
+                .error(&format!("expected {}, found {}", expected, self.tok)))
+        } else {
+            self.next_tok()?;
+            Ok(())
+        }
     }
 
     fn expect_ident(&mut self) -> Result<String> {
@@ -233,7 +249,7 @@ impl Parser {
             return Ok(None);
         }
         let name = self.expect_ident()?;
-        expect!(self, Token::Punc(':'))?;
+        self.expect(Token::Punc(':'))?;
         let typ = self.parse_type()?;
         Ok(Some(Field { name, typ }))
     }
@@ -283,16 +299,16 @@ impl Parser {
 
     // func = "fn" "(" ident ")" ident "(" args ")" ret
     fn parse_fn(&mut self) -> Result<Decl> {
-        expect!(self, Token::Fn)?;
-        expect!(self, Token::Punc('('))?;
+        self.expect(Token::Fn)?;
+        self.expect(Token::Punc('('))?;
         let version = self.parse_version()?;
-        expect!(self, Token::Punc(')'))?;
+        self.expect(Token::Punc(')'))?;
         let name = self.expect_ident()?;
-        expect!(self, Token::Punc('('))?;
+        self.expect(Token::Punc('('))?;
         let args = self.parse_fields()?;
-        expect!(self, Token::Punc(')'))?;
+        self.expect(Token::Punc(')'))?;
         let ret = self.parse_ret()?;
-        expect!(self, Token::Punc(';'))?;
+        self.expect(Token::Punc(';'))?;
         Ok(Decl::Fn(FuncDecl {
             name,
             args,
@@ -303,11 +319,11 @@ impl Parser {
 
     // struct = "struct" ident "{" fields "}"
     fn parse_struct(&mut self) -> Result<Decl> {
-        expect!(self, Token::Struct)?;
+        self.expect(Token::Struct)?;
         let name = self.expect_ident()?;
-        expect!(self, Token::Punc('{'))?;
+        self.expect(Token::Punc('{'))?;
         let fields = self.parse_fields()?;
-        expect!(self, Token::Punc('}'))?;
+        self.expect(Token::Punc('}'))?;
         Ok(Decl::Struct(StructDecl { name, fields }))
     }
 
@@ -325,7 +341,7 @@ impl Parser {
         while let Some(decl) = self.maybe_parse_decl()? {
             api.decls.push(decl);
         }
-        expect!(self, Token::EndOfFile)?;
+        self.expect(Token::EndOfFile)?;
         Ok(api)
     }
 }
