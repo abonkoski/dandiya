@@ -32,6 +32,13 @@ pub struct Field {
 #[derive(Debug)]
 pub enum Type {
     None,
+    Pointer(BaseType),
+    Value(BaseType),
+}
+
+#[derive(Debug)]
+pub enum BaseType {
+    Struct(String),
     U8,
     I8,
     U16,

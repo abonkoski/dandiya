@@ -155,6 +155,32 @@ impl Parser {
         }
     }
 
+    // type = "*"? base_type
+    fn parse_type(&mut self) -> Type {
+        let mut is_ptr = false;
+        if matches!(self.tok, Token::Punc('*')) {
+            is_ptr = true;
+            self.next_tok();
+        }
+        let type_str = self.expect_ident();
+        let base = match &type_str as &str {
+            "u8" => BaseType::U8,
+            "i8" => BaseType::I8,
+            "u16" => BaseType::U16,
+            "i16" => BaseType::I16,
+            "u32" => BaseType::U32,
+            "i32" => BaseType::I32,
+            "u64" => BaseType::U64,
+            "i64" => BaseType::I64,
+            _ => BaseType::Struct(type_str),
+        };
+        if is_ptr {
+            Type::Pointer(base)
+        } else {
+            Type::Value(base)
+        }
+    }
+
     // field = ident ":" type
     fn maybe_parse_field(&mut self) -> Option<Field> {
         if !matches!(self.tok, Token::Ident(_)) {
@@ -162,7 +188,7 @@ impl Parser {
         }
         let name = self.expect_ident();
         expect!(self, Token::Punc(':'));
-        let typ = parse_type(&self.expect_ident());
+        let typ = self.parse_type();
         Some(Field { name, typ })
     }
 
@@ -193,7 +219,7 @@ impl Parser {
             return Type::None;
         }
         self.next_tok();
-        parse_type(&self.expect_ident())
+        self.parse_type()
     }
 
     // func = "fn" "(" ident ")" ident "(" args ")" ret
@@ -254,18 +280,4 @@ fn parse_version(v: &str) -> Result<usize> {
         Err(_) => panic!("Failed to parse version number"),
     };
     return Ok(version);
-}
-
-fn parse_type(t: &str) -> Type {
-    match t {
-        "u8" => Type::U8,
-        "i8" => Type::I8,
-        "u16" => Type::U16,
-        "i16" => Type::I16,
-        "u32" => Type::U32,
-        "i32" => Type::I32,
-        "u64" => Type::U64,
-        "i64" => Type::I64,
-        _ => panic!("Unknown type: '{}'", t),
-    }
 }

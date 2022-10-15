@@ -100,6 +100,17 @@ fn test_parse_fn_with_args_and_ret() {
 }
 
 #[test]
+fn test_parse_fn_with_args_and_ret_and_ptrs() {
+    let s = "\
+      fn (v1) _blah67 ( blah: u64 ) -> *u8;
+      fn (v2) _blah67 ( gh: u32 ) -> u32;
+      fn (v234) _foo23_gh ( ab :  i8 , xy : * i16)->*i64;
+    ";
+    let mut parser = Parser::new(s);
+    parser.parse();
+}
+
+#[test]
 fn test_parse_struct() {
     let s = "\
       struct Foobar {
