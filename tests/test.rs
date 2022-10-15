@@ -1,4 +1,4 @@
-use hydra::parse::*;
+use dandiya::parse::*;
 
 #[test]
 fn test_tok_char() {
