@@ -1,12 +1,21 @@
 use dandiya::*;
 
 fn main() {
+    std::process::exit(run());
+}
+
+fn run() -> i32 {
     let args: Vec<_> = std::env::args().collect();
     if args.len() != 2 {
-        eprintln!("usage: {} <defn-file>", args[0]);
-        std::process::exit(1);
+        eprintln!("usage: {} <defn.dy>", args[0]);
+        return 1;
     }
+
     let path = &args[1];
+    if !path.ends_with(".dy") {
+        eprintln!("expected a .dy file, found '{}'", path);
+        return 1;
+    }
 
     let dat = std::fs::read(path).unwrap(); // FIXME
     let s = std::str::from_utf8(&dat).unwrap();
@@ -15,7 +24,7 @@ fn main() {
         Ok(ast) => ast,
         Err(Error::ParseFailure(msg)) => {
             eprint!("{}", msg);
-            std::process::exit(1);
+            return 1;
         }
         err => panic!("Unexpected error: {:?}", err),
     };
@@ -34,4 +43,6 @@ fn main() {
     println!(" Rust Codegen");
     println!("==========================================================");
     emit_rust::emit(&ast);
+
+    0
 }
