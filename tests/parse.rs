@@ -1,7 +1,7 @@
 use dandiya::parse::*;
 
 #[test]
-fn test_tok_char() {
+fn tok_char() {
     let mut tok = Tokenizer::new("foz", None);
     assert_eq!(tok.peek_char(), Some('f'));
     assert_eq!(tok.peek_char(), Some('f'));
@@ -17,7 +17,7 @@ fn test_tok_char() {
 }
 
 #[test]
-fn test_tok_empty() {
+fn tok_empty() {
     let mut tok = Tokenizer::new("", None);
     assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
     assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
@@ -25,7 +25,7 @@ fn test_tok_empty() {
 }
 
 #[test]
-fn test_tok_ident() {
+fn tok_ident() {
     let mut tok = Tokenizer::new("foobar3_ghs", None);
     assert_eq!(
         tok.next_tok().unwrap(),
@@ -44,7 +44,7 @@ fn test_tok_ident() {
 }
 
 #[test]
-fn test_tok_num() {
+fn tok_num() {
     let mut tok = Tokenizer::new("0", None);
     assert_eq!(tok.next_tok().unwrap(), Token::U64(0));
     assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
@@ -76,7 +76,7 @@ fn test_tok_num() {
 }
 
 #[test]
-fn test_tok_ident_and_punc() {
+fn tok_ident_and_punc() {
     let mut tok = Tokenizer::new("_blah,foo23", None);
     assert_eq!(tok.next_tok().unwrap(), Token::Ident("_blah".to_string()));
     assert_eq!(tok.next_tok().unwrap(), Token::Punc(','));
@@ -85,7 +85,7 @@ fn test_tok_ident_and_punc() {
 }
 
 #[test]
-fn test_tok_ident_and_kw() {
+fn tok_ident_and_kw() {
     let mut tok = Tokenizer::new("fn,fn7[struct", None);
     assert_eq!(tok.next_tok().unwrap(), Token::Fn);
     assert_eq!(tok.next_tok().unwrap(), Token::Punc(','));
@@ -96,12 +96,12 @@ fn test_tok_ident_and_kw() {
 }
 
 #[test]
-fn test_parse_one_fn() {
+fn parse_one_fn() {
     parse("fn (v1) _blah67 ( ) ; ", None).unwrap();
 }
 
 #[test]
-fn test_parse_two_fns() {
+fn parse_two_fns() {
     let s = "\
       fn (v1) _blah67 ( ) ;
       fn (v2) _blah67 ( ) ;
@@ -111,7 +111,7 @@ fn test_parse_two_fns() {
 }
 
 #[test]
-fn test_parse_fn_with_args() {
+fn parse_fn_with_args() {
     let s = "\
       fn (v1) _blah67 ( blah: u64 ) ;
       fn (v2) _blah67 ( gh: u32 ) ;
@@ -121,7 +121,7 @@ fn test_parse_fn_with_args() {
 }
 
 #[test]
-fn test_parse_fn_with_args_and_ret() {
+fn parse_fn_with_args_and_ret() {
     let s = "\
       fn (v1) _blah67 ( blah: u64 ) -> u8;
       fn (v2) _blah67 ( gh: u32 ) -> u32;
@@ -131,7 +131,7 @@ fn test_parse_fn_with_args_and_ret() {
 }
 
 #[test]
-fn test_parse_fn_with_args_and_ret_and_ptrs() {
+fn parse_fn_with_args_and_ret_and_ptrs() {
     let s = "\
       fn (v1) _blah67 ( blah: u64 ) -> *u8;
       fn (v2) _blah67 ( gh: u32 ) -> u32;
@@ -141,7 +141,7 @@ fn test_parse_fn_with_args_and_ret_and_ptrs() {
 }
 
 #[test]
-fn test_parse_struct() {
+fn parse_struct() {
     let s = "\
       struct Foobar {
         foo: u8,
@@ -153,7 +153,7 @@ fn test_parse_struct() {
 }
 
 #[test]
-fn test_parse_struct_with_ptr() {
+fn parse_struct_with_ptr() {
     let s = "\
       struct Foobar {
         foo: u8,
@@ -165,7 +165,7 @@ fn test_parse_struct_with_ptr() {
 }
 
 #[test]
-fn test_parse_struct_with_array() {
+fn parse_struct_with_array() {
     let s = "\
       struct Foobar {
         foo: u8,
@@ -178,7 +178,7 @@ fn test_parse_struct_with_array() {
 }
 
 #[test]
-fn test_parse_struct_with_complex_types() {
+fn parse_struct_with_complex_types() {
     let s = "\
       struct Baz {
         ptr: *u8,
@@ -196,7 +196,7 @@ fn test_parse_struct_with_complex_types() {
 }
 
 #[test]
-fn test_parse_return_types() {
+fn parse_return_types() {
     let s = "\
        fn(v1) foo() -> *u64;
      ";
