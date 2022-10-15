@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::Result;
+use crate::{Error, Result};
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -47,11 +47,11 @@ impl Tokenizer {
         }
     }
 
-    pub fn next_tok(&mut self) -> Token {
+    pub fn next_tok(&mut self) -> Result<Token> {
         loop {
             let c = match self.peek_char() {
                 Some(c) => c,
-                None => return Token::EndOfFile,
+                None => return Ok(Token::EndOfFile),
             };
 
             // newlines
@@ -72,16 +72,16 @@ impl Tokenizer {
             if c == '-' {
                 self.advance_char();
                 if self.peek_char() != Some('>') {
-                    self.error("expected '->'");
+                    return Err(self.error("expected '->'"));
                 }
                 self.advance_char();
-                return Token::Arrow;
+                return Ok(Token::Arrow);
             }
 
             // token single char punctuation
             if is_punc(c) {
                 self.advance_char();
-                return Token::Punc(c);
+                return Ok(Token::Punc(c));
             }
 
             // parse identifier or keyword
@@ -96,10 +96,10 @@ impl Tokenizer {
                     s.push(c);
                     self.advance_char();
                 }
-                return tok_ident_or_keyword(s);
+                return Ok(tok_ident_or_keyword(s));
             }
 
-            self.error(&format!("tokenizer read an invalid character: '{}'", c));
+            return Err(self.error(&format!("tokenizer read an invalid character: '{}'", c)));
         }
     }
 
@@ -118,18 +118,19 @@ impl Tokenizer {
         }
     }
 
-    fn error(&self, msg: &str) {
+    fn error(&self, msg: &str) -> Error {
         let line_off = self.idx - self.line_start_idx;
-        println!(
-            "{}:{}:{}: {}",
+        let mut s = String::new();
+        s += &format!(
+            "{}:{}:{}: {}\n",
             self.srcname(),
             self.line_num,
             line_off + 1,
             msg
         );
-        println!("  {}", self.current_line());
-        println!("  {0:1$}^", "", self.idx - self.line_start_idx);
-        std::process::exit(1);
+        s += &format!("  {}\n", self.current_line());
+        s += &format!("  {0:1$}^\n", "", self.idx - self.line_start_idx);
+        Error::ParseFailure(s)
     }
 }
 
@@ -165,42 +166,43 @@ macro_rules! expect {
         if !matches!($self.tok, $expr) {
             panic!("Expected {}, found {:?}", stringify!($expr), $self.tok);
         }
-        $self.next_tok();
+        $self.next_tok()?;
     };
 }
 
 impl Parser {
-    pub fn new(inp: &str, srcname: Option<&str>) -> Self {
+    pub fn new(inp: &str, srcname: Option<&str>) -> Result<Self> {
         let mut tokenizer = Tokenizer::new(inp, srcname);
-        let tok = tokenizer.next_tok();
-        Self { tokenizer, tok }
+        let tok = tokenizer.next_tok()?;
+        Ok(Self { tokenizer, tok })
     }
 
-    fn next_tok(&mut self) {
-        self.tok = self.tokenizer.next_tok();
+    fn next_tok(&mut self) -> Result<()> {
+        self.tok = self.tokenizer.next_tok()?;
+        Ok(())
     }
 
-    fn expect_ident(&mut self) -> String {
+    fn expect_ident(&mut self) -> Result<String> {
         if let Token::Ident(name) = self.tok.take() {
-            self.next_tok();
-            name
+            self.next_tok()?;
+            Ok(name)
         } else {
-            panic!(
-                "Expected {}, found {:?}",
+            Err(self.tokenizer.error(&format!(
+                "expected {}, found {:?}",
                 stringify!(Token::Ident(_)),
-                self.tok
-            );
+                self.tok,
+            )))
         }
     }
 
     // type = "*"? base_type
-    fn parse_type(&mut self) -> Type {
+    fn parse_type(&mut self) -> Result<Type> {
         let mut is_ptr = false;
         if matches!(self.tok, Token::Punc('*')) {
             is_ptr = true;
-            self.next_tok();
+            self.next_tok()?;
         }
-        let type_str = self.expect_ident();
+        let type_str = self.expect_ident()?;
         let base = match &type_str as &str {
             "u8" => BaseType::U8,
             "i8" => BaseType::I8,
@@ -213,109 +215,115 @@ impl Parser {
             _ => BaseType::Struct(type_str),
         };
         if is_ptr {
-            Type::Pointer(base)
+            Ok(Type::Pointer(base))
         } else {
-            Type::Value(base)
+            Ok(Type::Value(base))
         }
     }
 
     // field = ident ":" type
-    fn maybe_parse_field(&mut self) -> Option<Field> {
+    fn maybe_parse_field(&mut self) -> Result<Option<Field>> {
         if !matches!(self.tok, Token::Ident(_)) {
-            return None;
+            return Ok(None);
         }
-        let name = self.expect_ident();
+        let name = self.expect_ident()?;
         expect!(self, Token::Punc(':'));
-        let typ = self.parse_type();
-        Some(Field { name, typ })
+        let typ = self.parse_type()?;
+        Ok(Some(Field { name, typ }))
     }
 
     // fields = "" | field ("," field)* ","?
-    fn parse_fields(&mut self) -> Vec<Field> {
+    fn parse_fields(&mut self) -> Result<Vec<Field>> {
         let mut args = Vec::new();
 
-        match self.maybe_parse_field() {
+        match self.maybe_parse_field()? {
             Some(f) => args.push(f),
-            None => return args,
+            None => return Ok(args),
         }
 
         loop {
             if !matches!(self.tok, Token::Punc(',')) {
-                return args;
+                return Ok(args);
             }
-            self.next_tok();
-            match self.maybe_parse_field() {
+            self.next_tok()?;
+            match self.maybe_parse_field()? {
                 Some(f) => args.push(f),
-                None => return args,
+                None => return Ok(args),
             }
         }
     }
 
     // ret = ("->" type)?
-    fn parse_ret(&mut self) -> Type {
+    fn parse_ret(&mut self) -> Result<Type> {
         if !matches!(self.tok, Token::Arrow) {
-            return Type::None;
+            return Ok(Type::None);
         }
-        self.next_tok();
+        self.next_tok()?;
         self.parse_type()
     }
 
+    // version = "v" number
+    fn parse_version(&mut self) -> Result<usize> {
+        let v = self.expect_ident()?;
+        if v.chars().next() != Some('v') {
+            panic!("Not version identifier");
+        }
+        let version: usize = match v[1..].parse() {
+            Ok(v) => v,
+            Err(_) => panic!("Failed to parse version number"),
+        };
+        return Ok(version);
+    }
+
     // func = "fn" "(" ident ")" ident "(" args ")" ret
-    fn parse_fn(&mut self) -> Decl {
+    fn parse_fn(&mut self) -> Result<Decl> {
         expect!(self, Token::Fn);
         expect!(self, Token::Punc('('));
-        let version = parse_version(&self.expect_ident()).unwrap();
+        let version = self.parse_version()?;
         expect!(self, Token::Punc(')'));
-        let name = self.expect_ident();
+        let name = self.expect_ident()?;
         expect!(self, Token::Punc('('));
-        let args = self.parse_fields();
+        let args = self.parse_fields()?;
         expect!(self, Token::Punc(')'));
-        let ret = self.parse_ret();
+        let ret = self.parse_ret()?;
         expect!(self, Token::Punc(';'));
-        Decl::Fn(FuncDecl {
+        Ok(Decl::Fn(FuncDecl {
             name,
             args,
             ret,
             version,
-        })
+        }))
     }
 
     // struct = "struct" ident "{" fields "}"
-    fn parse_struct(&mut self) -> Decl {
+    fn parse_struct(&mut self) -> Result<Decl> {
         expect!(self, Token::Struct);
-        let name = self.expect_ident();
+        let name = self.expect_ident()?;
         expect!(self, Token::Punc('{'));
-        let fields = self.parse_fields();
+        let fields = self.parse_fields()?;
         expect!(self, Token::Punc('}'));
-        Decl::Struct(StructDecl { name, fields })
+        Ok(Decl::Struct(StructDecl { name, fields }))
     }
 
     // decl = func | struct
-    fn maybe_parse_decl(&mut self) -> Option<Decl> {
+    fn maybe_parse_decl(&mut self) -> Result<Option<Decl>> {
         match self.tok {
-            Token::Fn => Some(self.parse_fn()),
-            Token::Struct => Some(self.parse_struct()),
-            _ => None,
+            Token::Fn => Ok(Some(self.parse_fn()?)),
+            Token::Struct => Ok(Some(self.parse_struct()?)),
+            _ => Ok(None),
         }
     }
 
-    pub fn parse(&mut self) -> ApiDefn {
+    pub fn parse(&mut self) -> Result<ApiDefn> {
         let mut api = ApiDefn { decls: vec![] };
-        while let Some(decl) = self.maybe_parse_decl() {
+        while let Some(decl) = self.maybe_parse_decl()? {
             api.decls.push(decl);
         }
         expect!(self, Token::EndOfFile);
-        api
+        Ok(api)
     }
 }
 
-fn parse_version(v: &str) -> Result<usize> {
-    if v.chars().next() != Some('v') {
-        panic!("Not version identifier");
-    }
-    let version: usize = match v[1..].parse() {
-        Ok(v) => v,
-        Err(_) => panic!("Failed to parse version number"),
-    };
-    return Ok(version);
+pub fn parse(inp: &str, srcname: Option<&str>) -> Result<ApiDefn> {
+    Parser::new(inp, srcname)?.parse()
 }

@@ -1,13 +1,12 @@
-mod ast;
-
-mod parse;
-pub use parse::*;
+pub mod ast;
+pub mod parse;
 
 pub mod emit_c;
 pub mod emit_rust;
 
 #[derive(Debug)]
 pub enum Error {
+    ParseFailure(String),
     Unknown,
 }
 

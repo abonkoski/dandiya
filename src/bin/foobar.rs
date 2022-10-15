@@ -11,7 +11,14 @@ fn main() {
     let dat = std::fs::read(path).unwrap(); // FIXME
     let s = std::str::from_utf8(&dat).unwrap();
 
-    let ast = Parser::new(s, Some(path)).parse();
+    let ast = match parse::parse(s, Some(path)) {
+        Ok(ast) => ast,
+        Err(Error::ParseFailure(msg)) => {
+            eprint!("{}", msg);
+            std::process::exit(1);
+        }
+        err => panic!("Unexpected error: {:?}", err),
+    };
 
     println!("==========================================================");
     println!(" AST");
