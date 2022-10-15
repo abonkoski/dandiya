@@ -6,7 +6,7 @@ struct demo_packet {
 
 struct demo_batch {
   num: u8,
-  pkts: [packet; 16],
+  pkts: [demo_packet; 16],
 }
 
 fn(v1) demo_fetch_packet_batch(b: *demo_batch);

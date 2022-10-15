@@ -66,12 +66,12 @@ fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
 }
 
 fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Result {
-    write!(out, "typedef struct {} {}_t\n", decl.name, decl.name)?;
+    write!(out, "typedef struct {} {}_t;\n", decl.name, decl.name)?;
     write!(out, "struct {} {{\n", decl.name)?;
     for f in &decl.fields {
-        write!(out, "    {};\n", field_str(f))?;
+        write!(out, "  {};\n", field_str(f))?;
     }
-    write!(out, "}}\n")
+    write!(out, "}};\n")
 }
 
 pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {

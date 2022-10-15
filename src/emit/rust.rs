@@ -42,7 +42,7 @@ fn args_str(args: &[Field]) -> String {
 fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
     write!(
         out,
-        "fn {}_v{}({}){}\n",
+        "extern \"C\" fn {}_v{}({}){};\n",
         decl.name,
         decl.version,
         args_str(&decl.args),
@@ -51,9 +51,10 @@ fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
 }
 
 fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Result {
+    write!(out, "#[repr(C)]\n")?;
     write!(out, "struct {} {{\n", decl.name)?;
     for f in &decl.fields {
-        write!(out, "    {}: {},\n", f.name, type_str(&f.typ))?;
+        write!(out, "  {}: {},\n", f.name, type_str(&f.typ))?;
     }
     write!(out, "}}\n")
 }
