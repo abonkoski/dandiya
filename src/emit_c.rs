@@ -41,9 +41,10 @@ fn args_str(args: &[Field]) -> String {
 
 fn emit_fn(decl: &FuncDecl) {
     println!(
-        "{} {}({});",
+        "{} {}_v{}({});",
         type_str(&decl.ret),
         decl.name,
+        decl.version,
         args_str(&decl.args)
     );
 }

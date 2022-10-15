@@ -48,8 +48,9 @@ fn ret_str(ret: &Type) -> String {
 
 fn emit_fn(decl: &FuncDecl) {
     println!(
-        "fn {}({}){}",
+        "fn {}_v{}({}){}",
         decl.name,
+        decl.version,
         args_str(&decl.args),
         ret_str(&decl.ret)
     );
