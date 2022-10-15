@@ -13,4 +13,6 @@ fn main() {
 
     let ast = Parser::new(s).parse();
     println!("{:#?}", ast);
+
+    emit_c::emit(&ast);
 }

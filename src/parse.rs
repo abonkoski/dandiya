@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::Result;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {

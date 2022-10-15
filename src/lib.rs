@@ -3,6 +3,8 @@ mod ast;
 mod parse;
 pub use parse::*;
 
+pub mod emit_c;
+
 #[derive(Debug)]
 pub enum Error {
     Unknown,
