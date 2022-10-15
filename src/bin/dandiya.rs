@@ -37,12 +37,12 @@ fn run() -> i32 {
     println!("==========================================================");
     println!(" C Codegen");
     println!("==========================================================");
-    emit_c::emit(&ast);
+    emit::emit(&ast, emit::Language::C);
 
     println!("==========================================================");
     println!(" Rust Codegen");
     println!("==========================================================");
-    emit_rust::emit(&ast);
+    emit::emit(&ast, emit::Language::Rust);
 
     0
 }
