@@ -20,13 +20,19 @@ impl Token {
 pub struct Tokenizer {
     input: String,
     idx: usize,
+    line_start_idx: usize,
+    line_num: usize,
+    srcname: Option<String>,
 }
 
 impl Tokenizer {
-    pub fn new(inp: &str) -> Self {
+    pub fn new(inp: &str, srcname: Option<&str>) -> Self {
         Self {
             input: inp.to_string(),
             idx: 0,
+            line_start_idx: 0,
+            line_num: 1,
+            srcname: srcname.map(str::to_string),
         }
     }
 
@@ -48,21 +54,31 @@ impl Tokenizer {
                 None => return Token::EndOfFile,
             };
 
+            // newlines
+            if c == '\n' {
+                self.advance_char();
+                self.line_start_idx = self.idx;
+                self.line_num += 1;
+                continue;
+            }
+
             // skip whitespace
             if c.is_whitespace() {
                 self.advance_char();
                 continue;
             }
 
+            // token '->'
             if c == '-' {
                 self.advance_char();
                 if self.peek_char() != Some('>') {
-                    panic!("Expected '->'");
+                    self.error("expected '->'");
                 }
                 self.advance_char();
                 return Token::Arrow;
             }
 
+            // token single char punctuation
             if is_punc(c) {
                 self.advance_char();
                 return Token::Punc(c);
@@ -83,8 +99,37 @@ impl Tokenizer {
                 return tok_ident_or_keyword(s);
             }
 
-            panic!("Invalid char: '{}'", c);
+            self.error(&format!("tokenizer read an invalid character: '{}'", c));
         }
+    }
+
+    fn current_line(&self) -> &str {
+        let line_start = &self.input[self.line_start_idx..];
+        match line_start.find('\n') {
+            None => line_start,
+            Some(idx) => &line_start[..idx],
+        }
+    }
+
+    fn srcname(&self) -> &str {
+        match &self.srcname {
+            Some(name) => name,
+            None => "(anonymous)",
+        }
+    }
+
+    fn error(&self, msg: &str) {
+        let line_off = self.idx - self.line_start_idx;
+        println!(
+            "{}:{}:{}: {}",
+            self.srcname(),
+            self.line_num,
+            line_off + 1,
+            msg
+        );
+        println!("  {}", self.current_line());
+        println!("  {0:1$}^", "", self.idx - self.line_start_idx);
+        std::process::exit(1);
     }
 }
 
@@ -125,8 +170,8 @@ macro_rules! expect {
 }
 
 impl Parser {
-    pub fn new(inp: &str) -> Self {
-        let mut tokenizer = Tokenizer::new(inp);
+    pub fn new(inp: &str, srcname: Option<&str>) -> Self {
+        let mut tokenizer = Tokenizer::new(inp, srcname);
         let tok = tokenizer.next_tok();
         Self { tokenizer, tok }
     }

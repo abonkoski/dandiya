@@ -2,7 +2,7 @@ use hydra::*;
 
 #[test]
 fn test_tok_char() {
-    let mut tok = Tokenizer::new("foz");
+    let mut tok = Tokenizer::new("foz", None);
     assert_eq!(tok.peek_char(), Some('f'));
     assert_eq!(tok.peek_char(), Some('f'));
     tok.advance_char();
@@ -18,7 +18,7 @@ fn test_tok_char() {
 
 #[test]
 fn test_tok_empty() {
-    let mut tok = Tokenizer::new("");
+    let mut tok = Tokenizer::new("", None);
     assert_eq!(tok.next_tok(), Token::EndOfFile);
     assert_eq!(tok.next_tok(), Token::EndOfFile);
     assert_eq!(tok.next_tok(), Token::EndOfFile);
@@ -26,15 +26,15 @@ fn test_tok_empty() {
 
 #[test]
 fn test_tok_ident() {
-    let mut tok = Tokenizer::new("foobar3_ghs");
+    let mut tok = Tokenizer::new("foobar3_ghs", None);
     assert_eq!(tok.next_tok(), Token::Ident("foobar3_ghs".to_string()));
     assert_eq!(tok.next_tok(), Token::EndOfFile);
 
-    let mut tok = Tokenizer::new("_blah");
+    let mut tok = Tokenizer::new("_blah", None);
     assert_eq!(tok.next_tok(), Token::Ident("_blah".to_string()));
     assert_eq!(tok.next_tok(), Token::EndOfFile);
 
-    let mut tok = Tokenizer::new("_blah _foo");
+    let mut tok = Tokenizer::new("_blah _foo", None);
     assert_eq!(tok.next_tok(), Token::Ident("_blah".to_string()));
     assert_eq!(tok.next_tok(), Token::Ident("_foo".to_string()));
     assert_eq!(tok.next_tok(), Token::EndOfFile);
@@ -42,7 +42,7 @@ fn test_tok_ident() {
 
 #[test]
 fn test_tok_ident_and_punc() {
-    let mut tok = Tokenizer::new("_blah,foo23");
+    let mut tok = Tokenizer::new("_blah,foo23", None);
     assert_eq!(tok.next_tok(), Token::Ident("_blah".to_string()));
     assert_eq!(tok.next_tok(), Token::Punc(','));
     assert_eq!(tok.next_tok(), Token::Ident("foo23".to_string()));
@@ -51,7 +51,7 @@ fn test_tok_ident_and_punc() {
 
 #[test]
 fn test_tok_ident_and_kw() {
-    let mut tok = Tokenizer::new("fn,fn7[struct");
+    let mut tok = Tokenizer::new("fn,fn7[struct", None);
     assert_eq!(tok.next_tok(), Token::Fn);
     assert_eq!(tok.next_tok(), Token::Punc(','));
     assert_eq!(tok.next_tok(), Token::Ident("fn7".to_string()));
@@ -62,7 +62,7 @@ fn test_tok_ident_and_kw() {
 
 #[test]
 fn test_parse_one_fn() {
-    let mut parser = Parser::new("fn (v1) _blah67 ( ) ; ");
+    let mut parser = Parser::new("fn (v1) _blah67 ( ) ; ", None);
     parser.parse();
 }
 
@@ -73,7 +73,7 @@ fn test_parse_two_fns() {
       fn (v2) _blah67 ( ) ;
       fn (v234) _foo23_gh ( ) ;
     ";
-    let mut parser = Parser::new(s);
+    let mut parser = Parser::new(s, None);
     parser.parse();
 }
 
@@ -84,7 +84,7 @@ fn test_parse_fn_with_args() {
       fn (v2) _blah67 ( gh: u32 ) ;
       fn (v234) _foo23_gh ( ab :  i8 , xy : i16) ;
     ";
-    let mut parser = Parser::new(s);
+    let mut parser = Parser::new(s, None);
     parser.parse();
 }
 
@@ -95,7 +95,7 @@ fn test_parse_fn_with_args_and_ret() {
       fn (v2) _blah67 ( gh: u32 ) -> u32;
       fn (v234) _foo23_gh ( ab :  i8 , xy : i16)->i64;
     ";
-    let mut parser = Parser::new(s);
+    let mut parser = Parser::new(s, None);
     parser.parse();
 }
 
@@ -106,7 +106,7 @@ fn test_parse_fn_with_args_and_ret_and_ptrs() {
       fn (v2) _blah67 ( gh: u32 ) -> u32;
       fn (v234) _foo23_gh ( ab :  i8 , xy : * i16)->*i64;
     ";
-    let mut parser = Parser::new(s);
+    let mut parser = Parser::new(s, None);
     parser.parse();
 }
 
@@ -119,11 +119,6 @@ fn test_parse_struct() {
         baz: u16,
       }
      ";
-    let mut parser = Parser::new(s);
+    let mut parser = Parser::new(s, None);
     parser.parse();
 }
-
-// #[test]
-// fn test_fn() {
-//     parse("fn foo").unwrap();
-// }

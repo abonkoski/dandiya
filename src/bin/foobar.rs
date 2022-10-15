@@ -11,7 +11,7 @@ fn main() {
     let dat = std::fs::read(path).unwrap(); // FIXME
     let s = std::str::from_utf8(&dat).unwrap();
 
-    let ast = Parser::new(s).parse();
+    let ast = Parser::new(s, Some(path)).parse();
 
     println!("==========================================================");
     println!(" AST");
