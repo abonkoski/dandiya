@@ -19,7 +19,7 @@ struct Args {
 #[derive(Debug, Clone, ValueEnum)]
 enum Emit {
     Ast,
-    C,
+    CHeader,
     Rust,
 }
 
@@ -44,7 +44,7 @@ fn run() -> std::result::Result<(), String> {
 
     match args.emit {
         Emit::Ast => println!("{:#?}", ast),
-        Emit::C => print!("{}", emit::emit(&ast, emit::Language::C)),
+        Emit::CHeader => print!("{}", emit::emit(&ast, emit::Language::C)),
         Emit::Rust => print!("{}", emit::emit(&ast, emit::Language::Rust)),
     }
 
