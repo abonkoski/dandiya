@@ -19,52 +19,52 @@ fn tok_char() {
 #[test]
 fn tok_empty() {
     let mut tok = Tokenizer::new("", None);
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 }
 
 #[test]
 fn tok_ident() {
     let mut tok = Tokenizer::new("foobar3_ghs", None);
     assert_eq!(
-        tok.next_tok().unwrap(),
+        tok.next_tok().unwrap().1,
         Token::Ident("foobar3_ghs".to_string())
     );
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 
     let mut tok = Tokenizer::new("_blah", None);
-    assert_eq!(tok.next_tok().unwrap(), Token::Ident("_blah".to_string()));
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::Ident("_blah".to_string()));
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 
     let mut tok = Tokenizer::new("_blah _foo", None);
-    assert_eq!(tok.next_tok().unwrap(), Token::Ident("_blah".to_string()));
-    assert_eq!(tok.next_tok().unwrap(), Token::Ident("_foo".to_string()));
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::Ident("_blah".to_string()));
+    assert_eq!(tok.next_tok().unwrap().1, Token::Ident("_foo".to_string()));
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 }
 
 #[test]
 fn tok_num() {
     let mut tok = Tokenizer::new("0", None);
-    assert_eq!(tok.next_tok().unwrap(), Token::U64(0));
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::U64(0));
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 
     let mut tok = Tokenizer::new("123", None);
-    assert_eq!(tok.next_tok().unwrap(), Token::U64(123));
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::U64(123));
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 
     let mut tok = Tokenizer::new("123456", None);
-    assert_eq!(tok.next_tok().unwrap(), Token::U64(123456));
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::U64(123456));
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 
     let mut tok = Tokenizer::new("123 456", None);
-    assert_eq!(tok.next_tok().unwrap(), Token::U64(123));
-    assert_eq!(tok.next_tok().unwrap(), Token::U64(456));
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::U64(123));
+    assert_eq!(tok.next_tok().unwrap().1, Token::U64(456));
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 
     let mut tok = Tokenizer::new("18446744073709551615", None);
-    assert_eq!(tok.next_tok().unwrap(), Token::U64(18446744073709551615));
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::U64(18446744073709551615));
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 
     // overflow u64
     let mut tok = Tokenizer::new("18446744073709551616", None);
@@ -78,31 +78,31 @@ fn tok_num() {
 #[test]
 fn tok_ident_and_punc() {
     let mut tok = Tokenizer::new("_blah,foo23", None);
-    assert_eq!(tok.next_tok().unwrap(), Token::Ident("_blah".to_string()));
-    assert_eq!(tok.next_tok().unwrap(), Token::Punc(','));
-    assert_eq!(tok.next_tok().unwrap(), Token::Ident("foo23".to_string()));
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::Ident("_blah".to_string()));
+    assert_eq!(tok.next_tok().unwrap().1, Token::Punc(','));
+    assert_eq!(tok.next_tok().unwrap().1, Token::Ident("foo23".to_string()));
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 }
 
 #[test]
 fn tok_ident_and_kw() {
     let mut tok = Tokenizer::new("fn,fn7[struct", None);
-    assert_eq!(tok.next_tok().unwrap(), Token::Fn);
-    assert_eq!(tok.next_tok().unwrap(), Token::Punc(','));
-    assert_eq!(tok.next_tok().unwrap(), Token::Ident("fn7".to_string()));
-    assert_eq!(tok.next_tok().unwrap(), Token::Punc('['));
-    assert_eq!(tok.next_tok().unwrap(), Token::Struct);
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::Fn);
+    assert_eq!(tok.next_tok().unwrap().1, Token::Punc(','));
+    assert_eq!(tok.next_tok().unwrap().1, Token::Ident("fn7".to_string()));
+    assert_eq!(tok.next_tok().unwrap().1, Token::Punc('['));
+    assert_eq!(tok.next_tok().unwrap().1, Token::Struct);
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 }
 
 #[test]
 fn tok_kws() {
     let mut tok = Tokenizer::new("fn struct opaque const", None);
-    assert_eq!(tok.next_tok().unwrap(), Token::Fn);
-    assert_eq!(tok.next_tok().unwrap(), Token::Struct);
-    assert_eq!(tok.next_tok().unwrap(), Token::Opaque);
-    assert_eq!(tok.next_tok().unwrap(), Token::Const);
-    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+    assert_eq!(tok.next_tok().unwrap().1, Token::Fn);
+    assert_eq!(tok.next_tok().unwrap().1, Token::Struct);
+    assert_eq!(tok.next_tok().unwrap().1, Token::Opaque);
+    assert_eq!(tok.next_tok().unwrap().1, Token::Const);
+    assert_eq!(tok.next_tok().unwrap().1, Token::EndOfFile);
 }
 
 #[test]

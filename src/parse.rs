@@ -67,15 +67,11 @@ impl Tokenizer {
         }
     }
 
-    pub fn next_tok(&mut self) -> Result<Token> {
-        loop {
-            self.tok_idx = self.idx;
+    pub fn next_tok(&mut self) -> Result<(Whitespace, Token)> {
+        let white_start_idx = self.idx;
 
-            let c = match self.peek_char() {
-                Some(c) => c,
-                None => return Ok(Token::EndOfFile),
-            };
-
+        // advance past any whitespace
+        while let Some(c) = self.peek_char() {
             // newlines
             if c == '\n' {
                 self.advance_char();
@@ -83,67 +79,78 @@ impl Tokenizer {
                 self.line_num += 1;
                 continue;
             }
-
-            // skip whitespace
+            // other whitespace
             if c.is_whitespace() {
                 self.advance_char();
                 continue;
             }
+            // not whitespace?
+            break;
+        }
 
-            // token '->'
-            if c == '-' {
-                self.advance_char();
-                if self.peek_char() != Some('>') {
-                    return Err(self.error("expected '->'"));
+        let white = Whitespace(self.input[white_start_idx..self.idx].to_string());
+
+        // actual token starts here
+        self.tok_idx = self.idx;
+
+        let c = match self.peek_char() {
+            Some(c) => c,
+            None => return Ok((white, Token::EndOfFile)),
+        };
+
+        // token '->'
+        if c == '-' {
+            self.advance_char();
+            if self.peek_char() != Some('>') {
+                return Err(self.error("expected '->'"));
+            }
+            self.advance_char();
+            return Ok((white, Token::Arrow));
+        }
+
+        // token single char punctuation
+        if is_punc(c) {
+            self.advance_char();
+            return Ok((white, Token::Punc(c)));
+        }
+
+        // parse u64 number
+        if c.is_ascii_digit() {
+            while let Some(c) = self.peek_char() {
+                if !c.is_ascii_digit() {
+                    break;
                 }
                 self.advance_char();
-                return Ok(Token::Arrow);
             }
-
-            // token single char punctuation
-            if is_punc(c) {
-                self.advance_char();
-                return Ok(Token::Punc(c));
-            }
-
-            // parse u64 number
-            if c.is_ascii_digit() {
-                while let Some(c) = self.peek_char() {
-                    if !c.is_ascii_digit() {
-                        break;
-                    }
-                    self.advance_char();
+            let s = &self.input[self.tok_idx..self.idx];
+            let n: u64 = match s.parse() {
+                Ok(n) => n,
+                Err(_) => {
+                    return Err(self.error(&format!(
+                        "tokenizer read a number that was too large for u64: '{}'",
+                        s
+                    )));
                 }
-                let s = &self.input[self.tok_idx..self.idx];
-                let n: u64 = match s.parse() {
-                    Ok(n) => n,
-                    Err(_) => {
-                        return Err(self.error(&format!(
-                            "tokenizer read a number that was too large for u64: '{}'",
-                            s
-                        )));
-                    }
-                };
-                return Ok(Token::U64(n));
-            }
+            };
+            return Ok((white, Token::U64(n)));
+        }
 
-            // parse identifier or keyword
-            if is_ident_char_start(c) {
-                let mut s = String::new();
+        // parse identifier or keyword
+        if is_ident_char_start(c) {
+            let mut s = String::new();
+            s.push(c);
+            self.advance_char();
+            while let Some(c) = self.peek_char() {
+                if !is_ident_char(c) {
+                    break;
+                }
                 s.push(c);
                 self.advance_char();
-                while let Some(c) = self.peek_char() {
-                    if !is_ident_char(c) {
-                        break;
-                    }
-                    s.push(c);
-                    self.advance_char();
-                }
-                return Ok(tok_ident_or_keyword(s));
             }
-
-            return Err(self.error(&format!("tokenizer read an invalid character: '{}'", c)));
+            return Ok((white, tok_ident_or_keyword(s)));
         }
+
+        Err(self.error(&format!("tokenizer read an invalid character: '{}'", c)))
     }
 
     fn current_line(&self) -> &str {
@@ -204,18 +211,23 @@ fn tok_ident_or_keyword(s: String) -> Token {
 
 pub struct Parser {
     tokenizer: Tokenizer,
+    white: Whitespace,
     tok: Token,
 }
 
 impl Parser {
     pub fn new(inp: &str, srcname: Option<&str>) -> Result<Self> {
         let mut tokenizer = Tokenizer::new(inp, srcname);
-        let tok = tokenizer.next_tok()?;
-        Ok(Self { tokenizer, tok })
+        let (white, tok) = tokenizer.next_tok()?;
+        Ok(Self {
+            tokenizer,
+            white,
+            tok,
+        })
     }
 
     fn next_tok(&mut self) -> Result<()> {
-        self.tok = self.tokenizer.next_tok()?;
+        (self.white, self.tok) = self.tokenizer.next_tok()?;
         Ok(())
     }
 
@@ -367,6 +379,7 @@ impl Parser {
 
     // func = "fn" "(" ident ")" ident "(" args ")" ret ";"
     fn parse_fn(&mut self) -> Result<Decl> {
+        let prefix = self.white.clone();
         self.expect(Token::Fn)?;
         self.expect(Token::Punc('('))?;
         let version = self.parse_version()?;
@@ -378,6 +391,7 @@ impl Parser {
         let ret = self.parse_ret()?;
         self.expect(Token::Punc(';'))?;
         Ok(Decl::Fn(FuncDecl {
+            prefix,
             name,
             args,
             ret,
@@ -387,30 +401,37 @@ impl Parser {
 
     // struct = "struct" ident "{" fields "}"
     fn parse_struct(&mut self) -> Result<Decl> {
+        let prefix = self.white.clone();
         self.expect(Token::Struct)?;
         let name = self.expect_ident()?;
         self.expect(Token::Punc('{'))?;
         let fields = self.parse_fields()?;
         self.expect(Token::Punc('}'))?;
-        Ok(Decl::Struct(StructDecl { name, fields }))
+        Ok(Decl::Struct(StructDecl {
+            prefix,
+            name,
+            fields,
+        }))
     }
 
     // opaque = "opaque" ident ";"
     fn parse_opaque(&mut self) -> Result<Decl> {
+        let prefix = self.white.clone();
         self.expect(Token::Opaque)?;
         let name = self.expect_ident()?;
         self.expect(Token::Punc(';'))?;
-        Ok(Decl::Opaque(OpaqueDecl { name }))
+        Ok(Decl::Opaque(OpaqueDecl { prefix, name }))
     }
 
     // const = "const" ident "=" u64 ";"
     fn parse_const(&mut self) -> Result<Decl> {
+        let prefix = self.white.clone();
         self.expect(Token::Const)?;
         let name = self.expect_ident()?;
         self.expect(Token::Punc('='))?;
         let val = self.expect_u64()?;
         self.expect(Token::Punc(';'))?;
-        Ok(Decl::Const(ConstDecl { name, val }))
+        Ok(Decl::Const(ConstDecl { prefix, name, val }))
     }
 
     // decl = func | struct | opaque | const

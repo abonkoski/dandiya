@@ -3,8 +3,9 @@ const DEMO_SUCCESS = 0;
 const DEMO_ERR_AGAIN = 1;
 const DEMO_ERR_UNKNOWN = 2;
 
-opaque demo_ctx;
 
+
+opaque demo_ctx;
 struct demo_packet {
   len: u16,
   dat: [u8; 1500],

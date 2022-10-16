@@ -74,9 +74,10 @@ fn args_str(args: &[Field]) -> String {
 }
 
 fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
+    write!(out, "{}", decl.prefix.0)?;
     write!(
         out,
-        "{} {}_v{}({});\n",
+        "{} {}_v{}({});",
         ret_str(&decl.ret),
         decl.name,
         decl.version,
@@ -85,46 +86,37 @@ fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
 }
 
 fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Result {
+    write!(out, "{}", decl.prefix.0)?;
+    write!(out, "typedef struct {} {}_t;\n", decl.name, decl.name)?;
     write!(out, "struct {} {{\n", decl.name)?;
     for f in &decl.fields {
         write!(out, "  {};\n", field_str(f))?;
     }
-    write!(out, "}};\n")?;
-    write!(out, "\n")
+    write!(out, "}};")
 }
 
-fn emit_typedef(out: &mut dyn std::fmt::Write, name: &str) -> std::fmt::Result {
-    write!(out, "typedef struct {} {}_t;\n", name, name)
+fn emit_opaque(out: &mut dyn std::fmt::Write, decl: &OpaqueDecl) -> std::fmt::Result {
+    write!(out, "{}", decl.prefix.0)?;
+    write!(out, "typedef struct {} {}_t;", decl.name, decl.name)
 }
 
 fn emit_const(out: &mut dyn std::fmt::Write, decl: &ConstDecl) -> std::fmt::Result {
-    write!(out, "#define {} ((uint64_t)({}))\n", decl.name, decl.val)
+    write!(out, "{}", decl.prefix.0)?;
+    write!(out, "#define {} ((uint64_t)({}))", decl.name, decl.val)
 }
 
 pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
     write!(out, "{}", PREAMBLE)?;
     write!(out, "\n")?;
-
-    // emit typedefs
-    for decl in &defn.decls {
-        match decl.as_ref() {
-            Decl::Fn(_) => (), // ignore
-            Decl::Struct(decl) => emit_typedef(out, &decl.name)?,
-            Decl::Opaque(decl) => emit_typedef(out, &decl.name)?,
-            Decl::Const(_) => (), // ignore
-        }
-    }
-    write!(out, "\n")?;
-
-    // emit decls
     for decl in &defn.decls {
         match decl.as_ref() {
             Decl::Fn(decl) => emit_fn(out, decl)?,
             Decl::Struct(decl) => emit_struct(out, decl)?,
-            Decl::Opaque(_) => (), // ignore
+            Decl::Opaque(decl) => emit_opaque(out, decl)?,
             Decl::Const(decl) => emit_const(out, decl)?,
         }
     }
+    write!(out, "\n")?;
     write!(out, "{}", POSTAMBLE)?;
     Ok(())
 }

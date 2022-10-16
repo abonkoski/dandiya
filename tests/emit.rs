@@ -15,7 +15,7 @@ fn check(src: &str, emit_c: &str, emit_rust: &str) {
 #[test]
 fn emit_simple_func() {
     let src = "fn(v1) my_func(a: u8, b: u16) -> u64;";
-    let c = "\nuint64_t my_func_v1(uint8_t a, uint16_t b);";
+    let c = "uint64_t my_func_v1(uint8_t a, uint16_t b);";
     let rust = "extern \"C\" fn my_func_v1(a: u8, b: u16) -> u64;";
     check(src, &c, rust);
 }
@@ -31,13 +31,11 @@ struct name {
 
     let c = "\
 typedef struct name name_t;
-
 struct name {
   uint64_t* foo;
   uint16_t bar[4];
   uint8_t** baz[8];
-};
-";
+};";
 
     let rust = "\
 #[repr(C)]
@@ -57,13 +55,12 @@ struct data {
   foo: i32,
   bar: i8,
 }
+
 fn (v1) do_thing(dat: *data) -> u8;
-fn (v2) do_thing(dat: *data, p: u16) -> *u8;
-";
+fn (v2) do_thing(dat: *data, p: u16) -> *u8;";
 
     let c = "\
 typedef struct data data_t;
-
 struct data {
   int32_t foo;
   int8_t bar;
@@ -78,6 +75,7 @@ struct data {
   foo: i32,
   bar: i8,
 }
+
 extern \"C\" fn do_thing_v1(dat: *mut data) -> u8;
 extern \"C\" fn do_thing_v2(dat: *mut data, p: u16) -> *mut u8;";
 
@@ -86,43 +84,27 @@ extern \"C\" fn do_thing_v2(dat: *mut data, p: u16) -> *mut u8;";
 
 #[test]
 fn emit_opaque() {
-    let src = "\
-opaque mytype;";
-
-    let c = "\
-typedef struct mytype mytype_t;
-";
-    let rust = "\
-#[repr(C)]
-struct mytype {_opaque_data: [u8; 0]}";
+    let src = "opaque mytype;";
+    let c = "typedef struct mytype mytype_t;";
+    let rust = "#[repr(C)]\nstruct mytype {_opaque_data: [u8; 0]}";
 
     check(src, &c, rust);
 }
 
 #[test]
 fn emit_no_args() {
-    let src = "\
-fn(v1) func() -> u32;";
-
-    let c = "
-uint32_t func_v1(void);";
-
-    let rust = "\
-extern \"C\" fn func_v1() -> u32;";
+    let src = "fn(v1) func() -> u32;";
+    let c = "uint32_t func_v1(void);";
+    let rust = "extern \"C\" fn func_v1() -> u32;";
 
     check(src, &c, rust);
 }
 
 #[test]
 fn emit_const() {
-    let src = "\
-const MYCONST = 4235;";
-
-    let c = "
-#define MYCONST ((uint64_t)(4235))";
-
-    let rust = "\
-const MYCONST: u64 = 4235;";
+    let src = "const MYCONST = 4235;";
+    let c = "#define MYCONST ((uint64_t)(4235))";
+    let rust = "const MYCONST: u64 = 4235;";
 
     check(src, &c, rust);
 }
