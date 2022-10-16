@@ -12,6 +12,7 @@ pub enum Decl {
     Fn(FuncDecl),
     Struct(StructDecl),
     Opaque(OpaqueDecl),
+    Const(ConstDecl),
 }
 
 impl Decl {
@@ -20,6 +21,7 @@ impl Decl {
             Decl::Fn(decl) => format!("{}_v{}", decl.name, decl.version),
             Decl::Struct(decl) => decl.name.clone(),
             Decl::Opaque(decl) => decl.name.clone(),
+            Decl::Const(decl) => decl.name.clone(),
         }
     }
 }
@@ -41,6 +43,12 @@ pub struct StructDecl {
 #[derive(Debug)]
 pub struct OpaqueDecl {
     pub name: String,
+}
+
+#[derive(Debug)]
+pub struct ConstDecl {
+    pub name: String,
+    pub val: u64,
 }
 
 #[derive(Debug)]

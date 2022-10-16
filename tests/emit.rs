@@ -112,3 +112,17 @@ extern \"C\" fn func_v1() -> u32;";
 
     check(src, &c, rust);
 }
+
+#[test]
+fn emit_const() {
+    let src = "\
+const MYCONST = 4235;";
+
+    let c = "
+#define MYCONST ((uint64_t)(4235))";
+
+    let rust = "\
+const MYCONST: u64 = 4235;";
+
+    check(src, &c, rust);
+}

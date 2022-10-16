@@ -97,6 +97,10 @@ fn emit_typedef(out: &mut dyn std::fmt::Write, name: &str) -> std::fmt::Result {
     write!(out, "typedef struct {} {}_t;\n", name, name)
 }
 
+fn emit_const(out: &mut dyn std::fmt::Write, decl: &ConstDecl) -> std::fmt::Result {
+    write!(out, "#define {} ((uint64_t)({}))\n", decl.name, decl.val)
+}
+
 pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
     write!(out, "{}", PREAMBLE)?;
     write!(out, "\n")?;
@@ -107,6 +111,7 @@ pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
             Decl::Fn(_) => (), // ignore
             Decl::Struct(decl) => emit_typedef(out, &decl.name)?,
             Decl::Opaque(decl) => emit_typedef(out, &decl.name)?,
+            Decl::Const(_) => (), // ignore
         }
     }
     write!(out, "\n")?;
@@ -117,6 +122,7 @@ pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
             Decl::Fn(decl) => emit_fn(out, decl)?,
             Decl::Struct(decl) => emit_struct(out, decl)?,
             Decl::Opaque(_) => (), // ignore
+            Decl::Const(decl) => emit_const(out, decl)?,
         }
     }
     write!(out, "{}", POSTAMBLE)?;

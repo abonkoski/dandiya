@@ -96,6 +96,16 @@ fn tok_ident_and_kw() {
 }
 
 #[test]
+fn tok_kws() {
+    let mut tok = Tokenizer::new("fn struct opaque const", None);
+    assert_eq!(tok.next_tok().unwrap(), Token::Fn);
+    assert_eq!(tok.next_tok().unwrap(), Token::Struct);
+    assert_eq!(tok.next_tok().unwrap(), Token::Opaque);
+    assert_eq!(tok.next_tok().unwrap(), Token::Const);
+    assert_eq!(tok.next_tok().unwrap(), Token::EndOfFile);
+}
+
+#[test]
 fn parse_one_fn() {
     parse("fn (v1) _blah67 ( ) ; ", None).unwrap();
 }
@@ -230,5 +240,11 @@ fn parse_duplicate_symbols() {
 #[test]
 fn parse_opaque() {
     let s = "opaque name;";
+    parse(s, None).unwrap();
+}
+
+#[test]
+fn parse_const() {
+    let s = "const FOO = 45;";
     parse(s, None).unwrap();
 }

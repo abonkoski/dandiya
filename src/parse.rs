@@ -13,6 +13,7 @@ pub enum Token {
     Fn,
     Struct,
     Opaque,
+    Const,
     Arrow,
     Punc(char),
 }
@@ -27,6 +28,7 @@ impl fmt::Display for Token {
             Token::Fn        => write!(f, "'fn'"),
             Token::Struct    => write!(f, "'struct'"),
             Token::Opaque    => write!(f, "'opaque'"),
+            Token::Const     => write!(f, "'const'"),
             Token::Arrow     => write!(f, "'->'"),
             Token::Punc(c)   => write!(f, "'{}'", c),
         }
@@ -187,7 +189,7 @@ fn is_ident_char(c: char) -> bool {
 #[rustfmt::skip]
 fn is_punc(c: char) -> bool {
     c == '[' || c == ']' || c == '(' || c == ')' || c == '{' || c == '}' ||
-    c == '*' || c == ':' || c == ',' || c == ';'
+    c == '*' || c == ':' || c == ',' || c == ';' || c == '='
 }
 
 fn tok_ident_or_keyword(s: String) -> Token {
@@ -195,6 +197,7 @@ fn tok_ident_or_keyword(s: String) -> Token {
         "fn" => Token::Fn,
         "struct" => Token::Struct,
         "opaque" => Token::Opaque,
+        "const" => Token::Const,
         _ => Token::Ident(s),
     }
 }
@@ -400,12 +403,23 @@ impl Parser {
         Ok(Decl::Opaque(OpaqueDecl { name }))
     }
 
-    // decl = func | struct | opaque
+    // const = "const" ident "=" u64 ";"
+    fn parse_const(&mut self) -> Result<Decl> {
+        self.expect(Token::Const)?;
+        let name = self.expect_ident()?;
+        self.expect(Token::Punc('='))?;
+        let val = self.expect_u64()?;
+        self.expect(Token::Punc(';'))?;
+        Ok(Decl::Const(ConstDecl { name, val }))
+    }
+
+    // decl = func | struct | opaque | const
     fn maybe_parse_decl(&mut self) -> Result<Option<Decl>> {
         match self.tok {
             Token::Fn => Ok(Some(self.parse_fn()?)),
             Token::Struct => Ok(Some(self.parse_struct()?)),
             Token::Opaque => Ok(Some(self.parse_opaque()?)),
+            Token::Const => Ok(Some(self.parse_const()?)),
             _ => Ok(None),
         }
     }

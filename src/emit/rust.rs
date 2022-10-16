@@ -64,12 +64,17 @@ fn emit_opaque(out: &mut dyn std::fmt::Write, decl: &OpaqueDecl) -> std::fmt::Re
     write!(out, "struct {} {{_opaque_data: [u8; 0]}}\n", decl.name)
 }
 
+fn emit_const(out: &mut dyn std::fmt::Write, decl: &ConstDecl) -> std::fmt::Result {
+    write!(out, "const {}: u64 = {};\n", decl.name, decl.val)
+}
+
 pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
     for decl in &defn.decls {
         match decl.as_ref() {
             Decl::Fn(decl) => emit_fn(out, decl)?,
             Decl::Struct(decl) => emit_struct(out, decl)?,
             Decl::Opaque(decl) => emit_opaque(out, decl)?,
+            Decl::Const(decl) => emit_const(out, decl)?,
         }
     }
     Ok(())

@@ -1,4 +1,8 @@
 
+const DEMO_SUCCESS = 0;
+const DEMO_ERR_AGAIN = 1;
+const DEMO_ERR_UNKNOWN = 2;
+
 opaque demo_ctx;
 
 struct demo_packet {
@@ -13,4 +17,4 @@ struct demo_batch {
 
 fn(v1) demo_new() -> *demo_ctx;
 fn(v1) demo_delete(ctx: *demo_ctx);
-fn(v1) demo_fetch_batch(ctx: *demo_ctx, b: *demo_batch);
+fn(v1) demo_fetch_batch(ctx: *demo_ctx, b: *demo_batch) -> u64;
