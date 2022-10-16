@@ -115,9 +115,12 @@ fn emit_skip() {
     // Test that skip text is respected
     let src = "
 // Some comment here
-
-struct Foo {
+/* multi
+    line comment
+*/ struct Foo {
 }
+
+/* comment */ // followed by another
 
 fn(v1) foo();
 
@@ -125,10 +128,13 @@ fn(v1) foo();
 
     let c = "
 // Some comment here
-
-typedef struct Foo Foo_t;
+/* multi
+    line comment
+*/ typedef struct Foo Foo_t;
 struct Foo {
 };
+
+/* comment */ // followed by another
 
 void foo_v1(void);
 
@@ -136,10 +142,13 @@ void foo_v1(void);
 
     let rust = "
 // Some comment here
-
-#[repr(C)]
+/* multi
+    line comment
+*/ #[repr(C)]
 struct Foo {
 }
+
+/* comment */ // followed by another
 
 extern \"C\" fn foo_v1();
 

@@ -121,7 +121,42 @@ impl Tokenizer {
         Ok(Some(self.input[start..self.idx].to_string()))
     }
 
-    // skip = white (linecomment white)*
+    // blockcomment = "/*" <not-comment-terminating-chars>* "*/"
+    fn maybe_scan_blockcomment(&mut self) -> Result<Option<String>> {
+        if self.peek_char() != Some('/') {
+            return Ok(None);
+        }
+        if self.peek_char_nth(1) != Some('*') {
+            return Ok(None);
+        }
+        self.advance_char();
+        self.advance_char();
+
+        // advance until terminating "*/"
+        let start = self.idx;
+        let mut end = None;
+        while let Some(c) = self.peek_char() {
+            if c == '*' {
+                if self.peek_char_nth(1) == Some('/') {
+                    end = Some(self.idx);
+                    self.advance_char();
+                    self.advance_char();
+                    break;
+                }
+            }
+            // not-found: proceed as normal
+            self.advance_char();
+        }
+
+        // check that the comment actually terminated and we didn't just reach EOF
+        if let Some(end) = end {
+            Ok(Some(self.input[start..end].to_string()))
+        } else {
+            return Err(self.error("reached <end-of-file> while inside a block-comment"));
+        }
+    }
+
+    // skip = white ((linecomment|blockcomment) white)*
     fn scan_skip(&mut self) -> Result<Skip> {
         let mut skip = vec![];
         loop {
@@ -129,6 +164,10 @@ impl Tokenizer {
             skip.push(SkipElem::Whitespace(white));
             if let Some(comm) = self.maybe_scan_linecomment()? {
                 skip.push(SkipElem::LineComment(comm));
+                continue;
+            }
+            if let Some(comm) = self.maybe_scan_blockcomment()? {
+                skip.push(SkipElem::BlockComment(comm));
                 continue;
             }
             break;

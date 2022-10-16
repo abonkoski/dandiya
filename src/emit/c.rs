@@ -78,6 +78,7 @@ fn emit_skip(out: &mut dyn std::fmt::Write, skip: &Skip) -> std::fmt::Result {
         match s {
             SkipElem::Whitespace(w) => write!(out, "{}", w)?,
             SkipElem::LineComment(txt) => write!(out, "//{}", txt)?,
+            SkipElem::BlockComment(txt) => write!(out, "/*{}*/", txt)?,
         }
     }
     Ok(())

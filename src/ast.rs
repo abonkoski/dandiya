@@ -13,8 +13,9 @@ pub struct Skip(pub Vec<SkipElem>);
 
 #[derive(Debug, Clone)]
 pub enum SkipElem {
-    LineComment(String),
     Whitespace(String),
+    LineComment(String),
+    BlockComment(String),
 }
 
 #[derive(Debug)]

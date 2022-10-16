@@ -1,3 +1,8 @@
+/******************************************************************
+ * This is a demo of the capabilities that dandiya provides.
+ * For example: this is a block-comment that will be faithfully
+ * preserved in the output
+ *****************************************************************/
 
 // Result codes that can be returned
 const DEMO_SUCCESS = 0;
