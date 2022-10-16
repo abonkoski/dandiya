@@ -64,7 +64,7 @@ fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
     emit_skip(out, &decl.prefix)?;
     write!(
         out,
-        "extern \"C\" {{ fn {}_v{}({}){}; }}",
+        "extern \"C\" {{ pub fn {}_v{}({}){}; }}",
         decl.name,
         decl.version,
         args_str(&decl.args),
@@ -75,9 +75,9 @@ fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
 fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Result {
     emit_skip(out, &decl.prefix)?;
     write!(out, "#[repr(C)]\n")?;
-    write!(out, "struct {} {{\n", decl.name)?;
+    write!(out, "pub struct {} {{\n", decl.name)?;
     for f in &decl.fields {
-        write!(out, "  {}: {},\n", f.name, type_str(&f.typ))?;
+        write!(out, "  pub {}: {},\n", f.name, type_str(&f.typ))?;
     }
     write!(out, "}}")
 }
@@ -85,12 +85,12 @@ fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Re
 fn emit_opaque(out: &mut dyn std::fmt::Write, decl: &OpaqueDecl) -> std::fmt::Result {
     emit_skip(out, &decl.prefix)?;
     write!(out, "#[repr(C)]\n")?;
-    write!(out, "struct {} {{_opaque_data: [u8; 0]}}", decl.name)
+    write!(out, "pub struct {} {{_opaque_data: [u8; 0]}}", decl.name)
 }
 
 fn emit_const(out: &mut dyn std::fmt::Write, decl: &ConstDecl) -> std::fmt::Result {
     emit_skip(out, &decl.prefix)?;
-    write!(out, "const {}: u64 = {};", decl.name, decl.val)
+    write!(out, "pub const {}: u64 = {};", decl.name, decl.val)
 }
 
 pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {

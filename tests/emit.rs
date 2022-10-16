@@ -17,7 +17,7 @@ fn check(src: &str, emit_c: &str, emit_rust: &str) {
 fn emit_simple_func() {
     let src = "fn(v1) my_func(a: u8, b: u16) -> u64;";
     let c = "DANDIYA_API_EXPORT uint64_t my_func_v1(uint8_t a, uint16_t b);";
-    let rust = "extern \"C\" { fn my_func_v1(a: u8, b: u16) -> u64; }";
+    let rust = "extern \"C\" { pub fn my_func_v1(a: u8, b: u16) -> u64; }";
     check(src, &c, rust);
 }
 
@@ -40,10 +40,10 @@ struct name {
 
     let rust = "\
 #[repr(C)]
-struct name {
-  foo: *mut u64,
-  bar: [u16; 4],
-  baz: [*mut *mut u8; 8],
+pub struct name {
+  pub foo: *mut u64,
+  pub bar: [u16; 4],
+  pub baz: [*mut *mut u8; 8],
 }";
 
     check(src, &c, rust);
@@ -72,13 +72,13 @@ DANDIYA_API_EXPORT uint8_t* do_thing_v2(data_t* dat, uint16_t p);";
 
     let rust = "\
 #[repr(C)]
-struct data {
-  foo: i32,
-  bar: i8,
+pub struct data {
+  pub foo: i32,
+  pub bar: i8,
 }
 
-extern \"C\" { fn do_thing_v1(dat: *mut data) -> u8; }
-extern \"C\" { fn do_thing_v2(dat: *mut data, p: u16) -> *mut u8; }";
+extern \"C\" { pub fn do_thing_v1(dat: *mut data) -> u8; }
+extern \"C\" { pub fn do_thing_v2(dat: *mut data, p: u16) -> *mut u8; }";
 
     check(src, &c, rust);
 }
@@ -87,7 +87,7 @@ extern \"C\" { fn do_thing_v2(dat: *mut data, p: u16) -> *mut u8; }";
 fn emit_opaque() {
     let src = "opaque mytype;";
     let c = "typedef struct mytype mytype_t;";
-    let rust = "#[repr(C)]\nstruct mytype {_opaque_data: [u8; 0]}";
+    let rust = "#[repr(C)]\npub struct mytype {_opaque_data: [u8; 0]}";
 
     check(src, &c, rust);
 }
@@ -96,7 +96,7 @@ fn emit_opaque() {
 fn emit_no_args() {
     let src = "fn(v1) func() -> u32;";
     let c = "DANDIYA_API_EXPORT uint32_t func_v1(void);";
-    let rust = "extern \"C\" { fn func_v1() -> u32; }";
+    let rust = "extern \"C\" { pub fn func_v1() -> u32; }";
 
     check(src, &c, rust);
 }
@@ -105,7 +105,7 @@ fn emit_no_args() {
 fn emit_const() {
     let src = "const MYCONST = 4235;";
     let c = "#define MYCONST ((uint64_t)(4235))";
-    let rust = "const MYCONST: u64 = 4235;";
+    let rust = "pub const MYCONST: u64 = 4235;";
 
     check(src, &c, rust);
 }
@@ -145,12 +145,12 @@ DANDIYA_API_EXPORT void foo_v1(void);
 /* multi
     line comment
 */ #[repr(C)]
-struct Foo {
+pub struct Foo {
 }
 
 /* comment */ // followed by another
 
-extern \"C\" { fn foo_v1(); }
+extern \"C\" { pub fn foo_v1(); }
 
   //Trailingcomment";
 
