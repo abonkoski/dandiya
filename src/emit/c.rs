@@ -66,6 +66,10 @@ fn args_str(args: &[Field]) -> String {
         }
         s += &field_str(f);
     }
+    // quirky C: empty args is (void)
+    if s.is_empty() {
+        s = "void".to_string();
+    }
     s
 }
 
@@ -99,8 +103,10 @@ pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
 
     // emit typedefs
     for decl in &defn.decls {
-        if let Decl::Struct(decl) = decl.as_ref() {
-            emit_typedef(out, &decl.name)?;
+        match decl.as_ref() {
+            Decl::Fn(_) => (), // ignore
+            Decl::Struct(decl) => emit_typedef(out, &decl.name)?,
+            Decl::Opaque(decl) => emit_typedef(out, &decl.name)?,
         }
     }
     write!(out, "\n")?;
@@ -110,6 +116,7 @@ pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
         match decl.as_ref() {
             Decl::Fn(decl) => emit_fn(out, decl)?,
             Decl::Struct(decl) => emit_struct(out, decl)?,
+            Decl::Opaque(_) => (), // ignore
         }
     }
     write!(out, "{}", POSTAMBLE)?;

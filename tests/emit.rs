@@ -83,3 +83,32 @@ extern \"C\" fn do_thing_v2(dat: *mut data, p: u16) -> *mut u8;";
 
     check(src, &c, rust);
 }
+
+#[test]
+fn emit_opaque() {
+    let src = "\
+opaque mytype;";
+
+    let c = "\
+typedef struct mytype mytype_t;
+";
+    let rust = "\
+#[repr(C)]
+struct mytype {_opaque_data: [u8; 0]}";
+
+    check(src, &c, rust);
+}
+
+#[test]
+fn emit_no_args() {
+    let src = "\
+fn(v1) func() -> u32;";
+
+    let c = "
+uint32_t func_v1(void);";
+
+    let rust = "\
+extern \"C\" fn func_v1() -> u32;";
+
+    check(src, &c, rust);
+}

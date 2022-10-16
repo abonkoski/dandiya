@@ -12,6 +12,7 @@ pub enum Token {
     U64(u64),
     Fn,
     Struct,
+    Opaque,
     Arrow,
     Punc(char),
 }
@@ -25,6 +26,7 @@ impl fmt::Display for Token {
             Token::U64(_)    => write!(f, "<u64>"),
             Token::Fn        => write!(f, "'fn'"),
             Token::Struct    => write!(f, "'struct'"),
+            Token::Opaque    => write!(f, "'opaque'"),
             Token::Arrow     => write!(f, "'->'"),
             Token::Punc(c)   => write!(f, "'{}'", c),
         }
@@ -192,6 +194,7 @@ fn tok_ident_or_keyword(s: String) -> Token {
     match &s as &str {
         "fn" => Token::Fn,
         "struct" => Token::Struct,
+        "opaque" => Token::Opaque,
         _ => Token::Ident(s),
     }
 }
@@ -359,7 +362,7 @@ impl Parser {
         return Ok(version);
     }
 
-    // func = "fn" "(" ident ")" ident "(" args ")" ret
+    // func = "fn" "(" ident ")" ident "(" args ")" ret ";"
     fn parse_fn(&mut self) -> Result<Decl> {
         self.expect(Token::Fn)?;
         self.expect(Token::Punc('('))?;
@@ -389,11 +392,20 @@ impl Parser {
         Ok(Decl::Struct(StructDecl { name, fields }))
     }
 
-    // decl = func | struct
+    // opaque = "opaque" ident ";"
+    fn parse_opaque(&mut self) -> Result<Decl> {
+        self.expect(Token::Opaque)?;
+        let name = self.expect_ident()?;
+        self.expect(Token::Punc(';'))?;
+        Ok(Decl::Opaque(OpaqueDecl { name }))
+    }
+
+    // decl = func | struct | opaque
     fn maybe_parse_decl(&mut self) -> Result<Option<Decl>> {
         match self.tok {
             Token::Fn => Ok(Some(self.parse_fn()?)),
             Token::Struct => Ok(Some(self.parse_struct()?)),
+            Token::Opaque => Ok(Some(self.parse_opaque()?)),
             _ => Ok(None),
         }
     }

@@ -11,6 +11,7 @@ pub struct ApiDefn {
 pub enum Decl {
     Fn(FuncDecl),
     Struct(StructDecl),
+    Opaque(OpaqueDecl),
 }
 
 impl Decl {
@@ -18,6 +19,7 @@ impl Decl {
         match self {
             Decl::Fn(decl) => format!("{}_v{}", decl.name, decl.version),
             Decl::Struct(decl) => decl.name.clone(),
+            Decl::Opaque(decl) => decl.name.clone(),
         }
     }
 }
@@ -34,6 +36,11 @@ pub struct FuncDecl {
 pub struct StructDecl {
     pub name: String,
     pub fields: Vec<Field>,
+}
+
+#[derive(Debug)]
+pub struct OpaqueDecl {
+    pub name: String,
 }
 
 #[derive(Debug)]

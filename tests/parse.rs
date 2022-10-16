@@ -222,4 +222,13 @@ fn parse_return_types() {
 fn parse_duplicate_symbols() {
     let s = "struct A {} struct A {}";
     parse(s, None).err().unwrap();
+
+    let s = "struct A {} struct A {}";
+    parse(s, None).err().unwrap();
+}
+
+#[test]
+fn parse_opaque() {
+    let s = "opaque name;";
+    parse(s, None).unwrap();
 }

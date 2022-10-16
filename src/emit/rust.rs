@@ -59,11 +59,17 @@ fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Re
     write!(out, "}}\n")
 }
 
+fn emit_opaque(out: &mut dyn std::fmt::Write, decl: &OpaqueDecl) -> std::fmt::Result {
+    write!(out, "#[repr(C)]\n")?;
+    write!(out, "struct {} {{_opaque_data: [u8; 0]}}\n", decl.name)
+}
+
 pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
     for decl in &defn.decls {
         match decl.as_ref() {
             Decl::Fn(decl) => emit_fn(out, decl)?,
             Decl::Struct(decl) => emit_struct(out, decl)?,
+            Decl::Opaque(decl) => emit_opaque(out, decl)?,
         }
     }
     Ok(())
