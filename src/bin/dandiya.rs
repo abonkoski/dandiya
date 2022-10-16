@@ -23,37 +23,22 @@ enum Emit {
     Rust,
 }
 
-fn run() -> i32 {
+fn run() -> std::result::Result<(), String> {
     let args = Args::parse();
     let path = &args.input;
 
     if !path.ends_with(".dy") {
-        eprintln!("Expected a .dy file, found '{}'", path);
-        return 1;
+        return Err(format!("Expected a .dy file, found '{}'", path));
     }
 
-    let dat = match std::fs::read(path) {
-        Ok(dat) => dat,
-        Err(_) => {
-            eprintln!("Failed to read input file: {}", path);
-            return 1;
-        }
-    };
+    let dat = std::fs::read(path).map_err(|_| format!("Failed to read input file: {}", path))?;
 
-    let s = match std::str::from_utf8(&dat) {
-        Ok(s) => s,
-        Err(_) => {
-            eprintln!("Input file is not valid utf8: {}", path);
-            return 1;
-        }
-    };
+    let txt =
+        std::str::from_utf8(&dat).map_err(|_| format!("Input file is not valid utf8: {}", path))?;
 
-    let ast = match parse::parse(s, Some(path)) {
+    let ast = match parse::parse(txt, Some(path)) {
         Ok(ast) => ast,
-        Err(Error::ParseFailure(msg)) => {
-            eprint!("{}", msg);
-            return 1;
-        }
+        Err(Error::ParseFailure(msg)) => return Err(msg),
         err => panic!("BUG: Unexpected error: {:?}", err),
     };
 
@@ -63,9 +48,12 @@ fn run() -> i32 {
         Emit::Rust => print!("{}", emit::emit(&ast, emit::Language::Rust)),
     }
 
-    0
+    Ok(())
 }
 
 fn main() {
-    std::process::exit(run());
+    if let Err(errmsg) = run() {
+        eprintln!("{}", errmsg);
+        std::process::exit(1);
+    }
 }

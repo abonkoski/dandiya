@@ -271,7 +271,7 @@ impl Tokenizer {
             msg
         );
         s += &format!("  {}\n", self.current_line());
-        s += &format!("  {0:1$}^\n", "", tok_idx - self.line_start_idx);
+        s += &format!("  {0:1$}^", "", tok_idx - self.line_start_idx);
         Error::ParseFailure(s)
     }
 }
