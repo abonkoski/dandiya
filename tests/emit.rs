@@ -111,33 +111,39 @@ fn emit_const() {
 }
 
 #[test]
-fn emit_whitespace() {
-    // Test that whitespace is respected
+fn emit_skip() {
+    // Test that skip text is respected
     let src = "
+// Some comment here
+
 struct Foo {
 }
 
 fn(v1) foo();
 
-";
+  //Trailingcomment";
 
     let c = "
+// Some comment here
+
 typedef struct Foo Foo_t;
 struct Foo {
 };
 
 void foo_v1(void);
 
-";
+  //Trailingcomment";
 
     let rust = "
+// Some comment here
+
 #[repr(C)]
 struct Foo {
 }
 
 extern \"C\" fn foo_v1();
 
-";
+  //Trailingcomment";
 
     check(src, &c, rust);
 }

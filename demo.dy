@@ -1,22 +1,29 @@
 
+// Result codes that can be returned
 const DEMO_SUCCESS = 0;
 const DEMO_ERR_AGAIN = 1;
 const DEMO_ERR_UNKNOWN = 2;
 
-
-
+// Demo context: opaque
 opaque demo_ctx;
+
+// Packet structure
 struct demo_packet {
   len: u16,
   dat: [u8; 1500],
 }
 
+// Batch of packets
 struct demo_batch {
   num: u8,
   pkts: [demo_packet; 16],
 }
 
+// Create a new context
 fn(v1) demo_new() -> *demo_ctx;
-fn(v1) demo_delete(ctx: *demo_ctx);
-fn(v1) demo_fetch_batch(ctx: *demo_ctx, b: *demo_batch) -> u64;
 
+// Destroy a context
+fn(v1) demo_delete(ctx: *demo_ctx);
+
+// Retrieve a batch of packets
+fn(v1) demo_fetch_batch(ctx: *demo_ctx, b: *demo_batch) -> u64;

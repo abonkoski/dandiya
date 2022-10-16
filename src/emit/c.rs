@@ -73,8 +73,18 @@ fn args_str(args: &[Field]) -> String {
     s
 }
 
+fn emit_skip(out: &mut dyn std::fmt::Write, skip: &Skip) -> std::fmt::Result {
+    for s in &skip.0 {
+        match s {
+            SkipElem::Whitespace(w) => write!(out, "{}", w)?,
+            SkipElem::LineComment(txt) => write!(out, "//{}", txt)?,
+        }
+    }
+    Ok(())
+}
+
 fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
-    write!(out, "{}", decl.prefix.0)?;
+    emit_skip(out, &decl.prefix)?;
     write!(
         out,
         "{} {}_v{}({});",
@@ -86,7 +96,7 @@ fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
 }
 
 fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Result {
-    write!(out, "{}", decl.prefix.0)?;
+    emit_skip(out, &decl.prefix)?;
     write!(out, "typedef struct {} {}_t;\n", decl.name, decl.name)?;
     write!(out, "struct {} {{\n", decl.name)?;
     for f in &decl.fields {
@@ -96,12 +106,12 @@ fn emit_struct(out: &mut dyn std::fmt::Write, decl: &StructDecl) -> std::fmt::Re
 }
 
 fn emit_opaque(out: &mut dyn std::fmt::Write, decl: &OpaqueDecl) -> std::fmt::Result {
-    write!(out, "{}", decl.prefix.0)?;
+    emit_skip(out, &decl.prefix)?;
     write!(out, "typedef struct {} {}_t;", decl.name, decl.name)
 }
 
 fn emit_const(out: &mut dyn std::fmt::Write, decl: &ConstDecl) -> std::fmt::Result {
-    write!(out, "{}", decl.prefix.0)?;
+    emit_skip(out, &decl.prefix)?;
     write!(out, "#define {} ((uint64_t)({}))", decl.name, decl.val)
 }
 
@@ -115,7 +125,7 @@ pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
             Decl::Const(decl) => emit_const(out, decl)?,
         }
     }
-    write!(out, "{}", defn.suffix.0)?;
+    emit_skip(out, &defn.suffix)?;
     write!(out, "{}", POSTAMBLE)?;
     Ok(())
 }

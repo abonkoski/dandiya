@@ -56,10 +56,17 @@ impl Tokenizer {
         }
     }
 
+    // peek at the next char without advancing
     pub fn peek_char(&mut self) -> Option<char> {
         self.input[self.idx..].chars().next()
     }
 
+    // peek ahead at the nth char without advancing
+    pub fn peek_char_nth(&mut self, n: usize) -> Option<char> {
+        self.input[self.idx..].chars().nth(n)
+    }
+
+    // advance one char
     pub fn advance_char(&mut self) {
         match self.peek_char() {
             Some(c) => self.idx += c.len_utf8(),
@@ -67,10 +74,10 @@ impl Tokenizer {
         }
     }
 
-    pub fn next_tok(&mut self) -> Result<(Whitespace, Token)> {
-        let white_start_idx = self.idx;
-
+    // white = " " | "\t" | '\n" | ... etc ...
+    fn scan_white(&mut self) -> Result<String> {
         // advance past any whitespace
+        let start = self.idx;
         while let Some(c) = self.peek_char() {
             // newlines
             if c == '\n' {
@@ -88,14 +95,59 @@ impl Tokenizer {
             break;
         }
 
-        let white = Whitespace(self.input[white_start_idx..self.idx].to_string());
+        Ok(self.input[start..self.idx].to_string())
+    }
+
+    // linecomment = "//" [^\n]*
+    fn maybe_scan_linecomment(&mut self) -> Result<Option<String>> {
+        if self.peek_char() != Some('/') {
+            return Ok(None);
+        }
+        if self.peek_char_nth(1) != Some('/') {
+            return Ok(None);
+        }
+        self.advance_char();
+        self.advance_char();
+
+        // advance until newline
+        let start = self.idx;
+        while let Some(c) = self.peek_char() {
+            if c == '\n' {
+                break;
+            }
+            self.advance_char();
+        }
+
+        Ok(Some(self.input[start..self.idx].to_string()))
+    }
+
+    // skip = white (linecomment white)*
+    fn scan_skip(&mut self) -> Result<Skip> {
+        let mut skip = vec![];
+        loop {
+            let white = self.scan_white()?;
+            skip.push(SkipElem::Whitespace(white));
+            if let Some(comm) = self.maybe_scan_linecomment()? {
+                skip.push(SkipElem::LineComment(comm));
+                continue;
+            }
+            break;
+        }
+        Ok(Skip(skip))
+    }
+
+    pub fn next_tok(&mut self) -> Result<(Skip, Token)> {
+        // scan "skip": non-semantic text that we don't need
+        // for syntax translation but we need to save to preserve
+        // the formatting / layout / structure
+        let skip = self.scan_skip()?;
 
         // actual token starts here
         self.tok_idx = self.idx;
 
         let c = match self.peek_char() {
             Some(c) => c,
-            None => return Ok((white, Token::EndOfFile)),
+            None => return Ok((skip, Token::EndOfFile)),
         };
 
         // token '->'
@@ -105,13 +157,13 @@ impl Tokenizer {
                 return Err(self.error("expected '->'"));
             }
             self.advance_char();
-            return Ok((white, Token::Arrow));
+            return Ok((skip, Token::Arrow));
         }
 
         // token single char punctuation
         if is_punc(c) {
             self.advance_char();
-            return Ok((white, Token::Punc(c)));
+            return Ok((skip, Token::Punc(c)));
         }
 
         // parse u64 number
@@ -132,7 +184,7 @@ impl Tokenizer {
                     )));
                 }
             };
-            return Ok((white, Token::U64(n)));
+            return Ok((skip, Token::U64(n)));
         }
 
         // parse identifier or keyword
@@ -147,7 +199,7 @@ impl Tokenizer {
                 s.push(c);
                 self.advance_char();
             }
-            return Ok((white, tok_ident_or_keyword(s)));
+            return Ok((skip, tok_ident_or_keyword(s)));
         }
 
         Err(self.error(&format!("tokenizer read an invalid character: '{}'", c)))
@@ -211,23 +263,23 @@ fn tok_ident_or_keyword(s: String) -> Token {
 
 pub struct Parser {
     tokenizer: Tokenizer,
-    white: Whitespace,
+    skip: Skip,
     tok: Token,
 }
 
 impl Parser {
     pub fn new(inp: &str, srcname: Option<&str>) -> Result<Self> {
         let mut tokenizer = Tokenizer::new(inp, srcname);
-        let (white, tok) = tokenizer.next_tok()?;
+        let (skip, tok) = tokenizer.next_tok()?;
         Ok(Self {
             tokenizer,
-            white,
+            skip,
             tok,
         })
     }
 
     fn next_tok(&mut self) -> Result<()> {
-        (self.white, self.tok) = self.tokenizer.next_tok()?;
+        (self.skip, self.tok) = self.tokenizer.next_tok()?;
         Ok(())
     }
 
@@ -379,7 +431,7 @@ impl Parser {
 
     // func = "fn" "(" ident ")" ident "(" args ")" ret ";"
     fn parse_fn(&mut self) -> Result<Decl> {
-        let prefix = self.white.clone();
+        let prefix = self.skip.clone();
         self.expect(Token::Fn)?;
         self.expect(Token::Punc('('))?;
         let version = self.parse_version()?;
@@ -401,7 +453,7 @@ impl Parser {
 
     // struct = "struct" ident "{" fields "}"
     fn parse_struct(&mut self) -> Result<Decl> {
-        let prefix = self.white.clone();
+        let prefix = self.skip.clone();
         self.expect(Token::Struct)?;
         let name = self.expect_ident()?;
         self.expect(Token::Punc('{'))?;
@@ -416,7 +468,7 @@ impl Parser {
 
     // opaque = "opaque" ident ";"
     fn parse_opaque(&mut self) -> Result<Decl> {
-        let prefix = self.white.clone();
+        let prefix = self.skip.clone();
         self.expect(Token::Opaque)?;
         let name = self.expect_ident()?;
         self.expect(Token::Punc(';'))?;
@@ -425,7 +477,7 @@ impl Parser {
 
     // const = "const" ident "=" u64 ";"
     fn parse_const(&mut self) -> Result<Decl> {
-        let prefix = self.white.clone();
+        let prefix = self.skip.clone();
         self.expect(Token::Const)?;
         let name = self.expect_ident()?;
         self.expect(Token::Punc('='))?;
@@ -462,7 +514,7 @@ impl Parser {
             symbols.insert(name, decl.clone());
             decls.push(decl);
         }
-        let suffix = self.white.clone();
+        let suffix = self.skip.clone();
         self.expect(Token::EndOfFile)?;
 
         Ok(ApiDefn {

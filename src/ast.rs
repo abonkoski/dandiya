@@ -1,14 +1,20 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
-pub struct Whitespace(pub String);
-
 #[derive(Debug)]
 pub struct ApiDefn {
     pub symbols: HashMap<String, Rc<Decl>>,
     pub decls: Vec<Rc<Decl>>,
-    pub suffix: Whitespace,
+    pub suffix: Skip,
+}
+
+#[derive(Debug, Clone)]
+pub struct Skip(pub Vec<SkipElem>);
+
+#[derive(Debug, Clone)]
+pub enum SkipElem {
+    LineComment(String),
+    Whitespace(String),
 }
 
 #[derive(Debug)]
@@ -32,7 +38,7 @@ impl Decl {
 
 #[derive(Debug)]
 pub struct FuncDecl {
-    pub prefix: Whitespace,
+    pub prefix: Skip,
     pub name: String,
     pub args: Vec<Field>,
     pub ret: ReturnType,
@@ -41,20 +47,20 @@ pub struct FuncDecl {
 
 #[derive(Debug)]
 pub struct StructDecl {
-    pub prefix: Whitespace,
+    pub prefix: Skip,
     pub name: String,
     pub fields: Vec<Field>,
 }
 
 #[derive(Debug)]
 pub struct OpaqueDecl {
-    pub prefix: Whitespace,
+    pub prefix: Skip,
     pub name: String,
 }
 
 #[derive(Debug)]
 pub struct ConstDecl {
-    pub prefix: Whitespace,
+    pub prefix: Skip,
     pub name: String,
     pub val: u64,
 }
