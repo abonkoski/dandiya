@@ -446,25 +446,30 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<ApiDefn> {
-        let mut api = ApiDefn {
-            symbols: HashMap::new(),
-            decls: vec![],
-        };
+        let mut symbols = HashMap::new();
+        let mut decls = vec![];
+
         while let Some(decl) = self.maybe_parse_decl()? {
             let decl = Rc::new(decl);
             let name = decl.name();
 
-            if api.symbols.contains_key(&name) {
+            if symbols.contains_key(&name) {
                 return Err(self
                     .tokenizer
                     .error(&format!("duplicate symbol '{}'", name)));
             }
 
-            api.symbols.insert(name, decl.clone());
-            api.decls.push(decl);
+            symbols.insert(name, decl.clone());
+            decls.push(decl);
         }
+        let suffix = self.white.clone();
         self.expect(Token::EndOfFile)?;
-        Ok(api)
+
+        Ok(ApiDefn {
+            symbols,
+            decls,
+            suffix,
+        })
     }
 }
 

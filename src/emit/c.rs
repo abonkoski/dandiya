@@ -107,7 +107,6 @@ fn emit_const(out: &mut dyn std::fmt::Write, decl: &ConstDecl) -> std::fmt::Resu
 
 pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
     write!(out, "{}", PREAMBLE)?;
-    write!(out, "\n")?;
     for decl in &defn.decls {
         match decl.as_ref() {
             Decl::Fn(decl) => emit_fn(out, decl)?,
@@ -116,7 +115,7 @@ pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
             Decl::Const(decl) => emit_const(out, decl)?,
         }
     }
-    write!(out, "\n")?;
+    write!(out, "{}", defn.suffix.0)?;
     write!(out, "{}", POSTAMBLE)?;
     Ok(())
 }

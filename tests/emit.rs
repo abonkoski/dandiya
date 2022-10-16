@@ -3,13 +3,14 @@ use dandiya::parse::*;
 
 fn check(src: &str, emit_c: &str, emit_rust: &str) {
     let api = parse(src, None).unwrap();
+
     let c = emit(&api, Language::C);
-    assert_eq!(
-        c,
-        c::PREAMBLE.to_string() + "\n" + emit_c + "\n" + c::POSTAMBLE
-    );
+    let expected_c = format!("{}{}{}", c::PREAMBLE, emit_c, c::POSTAMBLE);
+    assert_eq!(c, expected_c);
+
     let rust = emit(&api, Language::Rust);
-    assert_eq!(rust, emit_rust.to_string() + "\n");
+    let expected_rust = format!("{}{}{}", rust::PREAMBLE, emit_rust, rust::POSTAMBLE);
+    assert_eq!(rust, expected_rust);
 }
 
 #[test]
@@ -105,6 +106,38 @@ fn emit_const() {
     let src = "const MYCONST = 4235;";
     let c = "#define MYCONST ((uint64_t)(4235))";
     let rust = "const MYCONST: u64 = 4235;";
+
+    check(src, &c, rust);
+}
+
+#[test]
+fn emit_whitespace() {
+    // Test that whitespace is respected
+    let src = "
+struct Foo {
+}
+
+fn(v1) foo();
+
+";
+
+    let c = "
+typedef struct Foo Foo_t;
+struct Foo {
+};
+
+void foo_v1(void);
+
+";
+
+    let rust = "
+#[repr(C)]
+struct Foo {
+}
+
+extern \"C\" fn foo_v1();
+
+";
 
     check(src, &c, rust);
 }

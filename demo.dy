@@ -19,3 +19,4 @@ struct demo_batch {
 fn(v1) demo_new() -> *demo_ctx;
 fn(v1) demo_delete(ctx: *demo_ctx);
 fn(v1) demo_fetch_batch(ctx: *demo_ctx, b: *demo_batch) -> u64;
+

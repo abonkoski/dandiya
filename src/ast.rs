@@ -8,6 +8,7 @@ pub struct Whitespace(pub String);
 pub struct ApiDefn {
     pub symbols: HashMap<String, Rc<Decl>>,
     pub decls: Vec<Rc<Decl>>,
+    pub suffix: Whitespace,
 }
 
 #[derive(Debug)]
