@@ -42,10 +42,12 @@ fn run() -> std::result::Result<(), String> {
         err => panic!("BUG: Unexpected error: {:?}", err),
     };
 
+    let options = Default::default();
+
     match args.emit {
         Emit::Ast => println!("{:#?}", ast),
-        Emit::CHeader => print!("{}", emit::emit(&ast, emit::Language::C)),
-        Emit::Rust => print!("{}", emit::emit(&ast, emit::Language::Rust)),
+        Emit::CHeader => print!("{}", emit::emit(&ast, emit::Language::C, options)),
+        Emit::Rust => print!("{}", emit::emit(&ast, emit::Language::Rust, options)),
     }
 
     Ok(())

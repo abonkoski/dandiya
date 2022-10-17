@@ -248,3 +248,29 @@ fn parse_const() {
     let s = "const FOO = 45;";
     parse(s, None).unwrap();
 }
+
+#[test]
+fn parse_fail_duplicate_symbol() {
+    let s = "const FOO = 45;const FOO = 67;";
+    parse(s, None).err().unwrap();
+}
+
+#[test]
+fn parse_newer_version() {
+    let s = "\
+fn(v1) foo(a: u8) -> u64;
+fn(v2) foo(a: u8, b: u8) -> u64;
+";
+
+    parse(s, None).unwrap();
+}
+
+#[test]
+fn parse_fail_duplicate_version() {
+    let s = "\
+fn(v1) foo(a: u8) -> u64;
+fn(v1) foo(a: u8, b: u8) -> u64;
+";
+
+    parse(s, None).err().unwrap();
+}

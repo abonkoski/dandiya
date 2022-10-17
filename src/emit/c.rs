@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::emit::Options;
 
 pub const PREAMBLE: &str = "\
 /*******************************************************************************
@@ -25,6 +26,12 @@ pub const POSTAMBLE: &str = "
 #ifdef __cplusplus
 }
 #endif
+";
+
+pub const API_HEADER: &str = "
+/*******************************************************************************
+ * API Inlines
+ ******************************************************************************/
 ";
 
 // Returns (front-part, back-part)
@@ -85,6 +92,17 @@ fn args_str(args: &[Field]) -> String {
     s
 }
 
+fn call_str(args: &[Field]) -> String {
+    let mut s = String::new();
+    for f in args {
+        if !s.is_empty() {
+            s += ", ";
+        }
+        s += &f.name;
+    }
+    s
+}
+
 fn emit_skip(out: &mut dyn std::fmt::Write, skip: &Skip) -> std::fmt::Result {
     for s in &skip.0 {
         match s {
@@ -103,7 +121,7 @@ fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
         "DANDIYA_API_EXPORT {} {}_v{}({});",
         ret_str(&decl.ret),
         decl.name,
-        decl.version,
+        decl.version.0,
         args_str(&decl.args)
     )
 }
@@ -128,8 +146,32 @@ fn emit_const(out: &mut dyn std::fmt::Write, decl: &ConstDecl) -> std::fmt::Resu
     write!(out, "#define {} ((uint64_t)({}))", decl.name, decl.val)
 }
 
-pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
+fn emit_apis(out: &mut dyn std::fmt::Write, apis: &Apis) -> std::fmt::Result {
+    write!(out, "{}", API_HEADER)?;
+    for api in &apis.apis {
+        let decl = match api.latest() {
+            Decl::Fn(decl) => decl,
+            _ => panic!("expected fn decl"),
+        };
+
+        write!(
+            out,
+            "static inline {} {}({}) {{ return {}_v{}({}); }}\n",
+            ret_str(&decl.ret),
+            decl.name,
+            args_str(&decl.args),
+            decl.name,
+            decl.version.0,
+            call_str(&decl.args),
+        )?;
+    }
+    Ok(())
+}
+
+pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn, options: Options) -> std::fmt::Result {
     write!(out, "{}", PREAMBLE)?;
+
+    // emit decls
     for decl in &defn.decls {
         match decl.as_ref() {
             Decl::Fn(decl) => emit_fn(out, decl)?,
@@ -139,6 +181,12 @@ pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
         }
     }
     emit_skip(out, &defn.suffix)?;
+
+    // emit api forwarding
+    if options.api_forward_to_latest {
+        emit_apis(out, &defn.apis)?;
+    }
+
     write!(out, "{}", POSTAMBLE)?;
     Ok(())
 }

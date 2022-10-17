@@ -456,16 +456,16 @@ impl Parser {
     }
 
     // version = "v" number
-    fn parse_version(&mut self) -> Result<usize> {
+    fn parse_version(&mut self) -> Result<Version> {
         let v = self.expect_ident()?;
         if v.chars().next() != Some('v') {
             return Err(self.tokenizer.error("not a version identifier"));
         }
-        let version: usize = match v[1..].parse() {
+        let num: u64 = match v[1..].parse() {
             Ok(v) => v,
             Err(_) => return Err(self.tokenizer.error("not a version number")),
         };
-        return Ok(version);
+        return Ok(Version(num));
     }
 
     // func = "fn" "(" ident ")" ident "(" args ")" ret ";"
@@ -538,19 +538,32 @@ impl Parser {
 
     pub fn parse(&mut self) -> Result<ApiDefn> {
         let mut symbols = HashMap::new();
+        let mut apis = Apis::new();
         let mut decls = vec![];
 
         while let Some(decl) = self.maybe_parse_decl()? {
             let decl = Rc::new(decl);
             let name = decl.name();
 
+            // add the symbol
             if symbols.contains_key(&name) {
                 return Err(self
                     .tokenizer
                     .error(&format!("duplicate symbol '{}'", name)));
             }
-
             symbols.insert(name, decl.clone());
+
+            // add the api
+            if let Decl::Fn(func) = decl.as_ref() {
+                if let Some(_) = apis.insert(func.name.to_string(), func.version, decl.clone()) {
+                    return Err(self.tokenizer.error(&format!(
+                        "duplicate version {} for symbol '{}'",
+                        func.version.0, func.name
+                    )));
+                }
+            }
+
+            // add the decl
             decls.push(decl);
         }
         let suffix = self.skip.clone();
@@ -558,6 +571,7 @@ impl Parser {
 
         Ok(ApiDefn {
             symbols,
+            apis,
             decls,
             suffix,
         })

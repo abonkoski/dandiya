@@ -4,11 +4,16 @@ use dandiya::parse::*;
 fn check(src: &str, emit_c: &str, emit_rust: &str) {
     let api = parse(src, None).unwrap();
 
-    let c = emit(&api, Language::C);
+    let options = Options {
+        api_forward_to_latest: false,
+        ..Default::default()
+    };
+
+    let c = emit(&api, Language::C, options.clone());
     let expected_c = format!("{}{}{}", c::PREAMBLE, emit_c, c::POSTAMBLE);
     assert_eq!(c, expected_c);
 
-    let rust = emit(&api, Language::Rust);
+    let rust = emit(&api, Language::Rust, options.clone());
     let expected_rust = format!("{}{}{}", rust::PREAMBLE, emit_rust, rust::POSTAMBLE);
     assert_eq!(rust, expected_rust);
 }

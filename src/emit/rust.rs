@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::emit::Options;
 
 pub const PREAMBLE: &str = "\
 /*******************************************************************************
@@ -9,6 +10,12 @@ pub const PREAMBLE: &str = "\
 ";
 
 pub const POSTAMBLE: &str = "";
+
+pub const API_HEADER: &str = "
+/*******************************************************************************
+ * API Inlines
+ ******************************************************************************/
+";
 
 fn type_str(t: &Type) -> String {
     match t {
@@ -49,6 +56,17 @@ fn args_str(args: &[Field]) -> String {
     s
 }
 
+fn call_str(args: &[Field]) -> String {
+    let mut s = String::new();
+    for f in args {
+        if !s.is_empty() {
+            s += ", ";
+        }
+        s += &f.name;
+    }
+    s
+}
+
 fn emit_skip(out: &mut dyn std::fmt::Write, skip: &Skip) -> std::fmt::Result {
     for s in &skip.0 {
         match s {
@@ -66,7 +84,7 @@ fn emit_fn(out: &mut dyn std::fmt::Write, decl: &FuncDecl) -> std::fmt::Result {
         out,
         "extern \"C\" {{ pub fn {}_v{}({}){}; }}",
         decl.name,
-        decl.version,
+        decl.version.0,
         args_str(&decl.args),
         ret_str(&decl.ret)
     )
@@ -93,7 +111,29 @@ fn emit_const(out: &mut dyn std::fmt::Write, decl: &ConstDecl) -> std::fmt::Resu
     write!(out, "pub const {}: u64 = {};", decl.name, decl.val)
 }
 
-pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
+fn emit_apis(out: &mut dyn std::fmt::Write, apis: &Apis) -> std::fmt::Result {
+    write!(out, "{}", API_HEADER)?;
+    for api in &apis.apis {
+        let decl = match api.latest() {
+            Decl::Fn(decl) => decl,
+            _ => panic!("expected fn decl"),
+        };
+
+        write!(
+            out,
+            "pub unsafe fn {}({}){} {{ {}_v{}({}) }}\n",
+            decl.name,
+            args_str(&decl.args),
+            ret_str(&decl.ret),
+            decl.name,
+            decl.version.0,
+            call_str(&decl.args),
+        )?;
+    }
+    Ok(())
+}
+
+pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn, options: Options) -> std::fmt::Result {
     write!(out, "{}", PREAMBLE)?;
     for decl in &defn.decls {
         match decl.as_ref() {
@@ -104,6 +144,12 @@ pub fn emit(out: &mut dyn std::fmt::Write, defn: &ApiDefn) -> std::fmt::Result {
         }
     }
     emit_skip(out, &defn.suffix)?;
+
+    // emit api forwarding
+    if options.api_forward_to_latest {
+        emit_apis(out, &defn.apis)?;
+    }
+
     write!(out, "{}", POSTAMBLE)?;
     Ok(())
 }
