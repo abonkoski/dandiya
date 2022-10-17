@@ -33,6 +33,8 @@ Binding generation modes:
 
 ## Example
 
+For more in-depth examples of multiple languages interacting: see [examples/](examples/)
+
 ### API Definition
 Command: `cat example.dy`
 ```
