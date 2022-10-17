@@ -17,17 +17,16 @@ $GEN example.dy -e c-header > $GEN_DIR/example.h
 $GEN example.dy -e rust > $GEN_DIR/example.rs
 
 # build libexample.a
-gcc -o $OUT_DIR/lib_impl.o -c -fPIC -Wall -Werror -I$GEN_DIR lib_impl.c
-ar rc $OUT_DIR/libexample.a $OUT_DIR/lib_impl.o
-
-# build bin example
-rustc --edition=2021 --crate-name example --crate-type lib \
+rustc --edition=2021 --crate-name _defn_example --crate-type lib \
       --emit=dep-info,metadata,link \
       --out-dir out \
       $GEN_DIR/example.rs
 
-rustc --edition=2021 --crate-name example --crate-type bin \
-      --extern example=out/libexample.rlib \
-      -l example -L out \
+rustc --edition=2021 --crate-name example --crate-type staticlib \
+      --extern _defn_example=out/lib_defn_example.rlib \
       --out-dir out \
-      user_impl.rs
+      lib_impl.rs
+
+# build bin example
+gcc -o $OUT_DIR/user_impl.o -c -fPIC -Wall -Werror -I$GEN_DIR user_impl.c
+gcc -o $OUT_DIR/example $OUT_DIR/user_impl.o $OUT_DIR/libexample.a -lpthread -ldl
