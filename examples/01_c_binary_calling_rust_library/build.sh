@@ -25,8 +25,8 @@ rustc --edition=2021 --crate-name _defn_example --crate-type lib \
 rustc --edition=2021 --crate-name example --crate-type staticlib \
       --extern _defn_example=out/lib_defn_example.rlib \
       --out-dir out \
-      lib_impl.rs
+      impl_lib.rs
 
 # build bin example
-gcc -o $OUT_DIR/user_impl.o -c -fPIC -Wall -Werror -I$GEN_DIR user_impl.c
-gcc -o $OUT_DIR/example $OUT_DIR/user_impl.o $OUT_DIR/libexample.a -lpthread -ldl
+gcc -o $OUT_DIR/impl_bin.o -c -fPIC -Wall -Werror -I$GEN_DIR impl_bin.c
+gcc -o $OUT_DIR/example $OUT_DIR/impl_bin.o $OUT_DIR/libexample.a -lpthread -ldl
