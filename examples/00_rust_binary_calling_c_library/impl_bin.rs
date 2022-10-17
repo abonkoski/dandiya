@@ -6,7 +6,7 @@ struct Example {
 
 impl Example {
     fn new() -> Self {
-        let ctx = unsafe { example::example_new_v1() };
+        let ctx = unsafe { example::example_new() };
         if ctx.is_null() {
             panic!("Null context");
         }
@@ -14,7 +14,7 @@ impl Example {
     }
 
     fn fetch_batch(&mut self, batch: &mut Batch) -> Result<(), u64> {
-        let ret = unsafe { example::example_fetch_batch_v1(self.ctx, &mut batch.0) };
+        let ret = unsafe { example::example_fetch_batch(self.ctx, &mut batch.0) };
         if ret == example::EXAMPLE_SUCCESS {
             Ok(())
         } else {
@@ -25,7 +25,7 @@ impl Example {
 
 impl Drop for Example {
     fn drop(&mut self) {
-        unsafe { example::example_delete_v1(self.ctx) };
+        unsafe { example::example_delete(self.ctx) };
     }
 }
 

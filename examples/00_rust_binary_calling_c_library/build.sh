@@ -23,6 +23,7 @@ ar rc $OUT_DIR/libexample.a $OUT_DIR/impl_lib.o
 # build bin example
 rustc --edition=2021 --crate-name example --crate-type lib \
       --emit=dep-info,metadata,link \
+      -l example -L out \
       --out-dir out \
       $GEN_DIR/example.rs
 
