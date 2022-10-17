@@ -23,6 +23,7 @@ Features:
   - Standard integer types are supported: `u8`, `i8`, `u16`, `i16`, `u32`, `i32`, `u64`, `i64`
   - Definining `opaque` types and using pointers to them is supported
   - Defining constants (in C: `#define`) is supported
+  - Binding generation respects whitespace and comments in so far as practical
   
 Binding generation modes:
   - C Header
