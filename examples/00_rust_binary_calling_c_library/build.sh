@@ -3,28 +3,31 @@ set -e
 THISDIR=$(dirname $(realpath $0))
 cd $THISDIR
 
-GEN=../target/release/dandiya
-BUILD_DIR=build
+GEN=../../target/release/dandiya
+OUT_DIR=out
+GEN_DIR=$OUT_DIR/gen
 
 # setup
-rm -fr $BUILD_DIR
-mkdir -p $BUILD_DIR
+rm -fr $OUT_DIR
+mkdir -p $OUT_DIR
+mkdir -p $GEN_DIR
 
 # generate bindings for both C and Rust
-$GEN example.dy -e c-header > example.h
-$GEN example.dy -e rust > example.rs
+$GEN example.dy -e c-header > $GEN_DIR/example.h
+$GEN example.dy -e rust > $GEN_DIR/example.rs
 
 # build libexample.a
-gcc -o $BUILD_DIR/lib_impl.o -c -fPIC -Wall -Werror lib_impl.c
-ar rc $BUILD_DIR/libexample.a $BUILD_DIR/lib_impl.o
+gcc -o $OUT_DIR/lib_impl.o -c -fPIC -Wall -Werror -I$GEN_DIR lib_impl.c
+ar rc $OUT_DIR/libexample.a $OUT_DIR/lib_impl.o
 
 # build libexample.rlib
 rustc --edition=2021 --crate-name example --crate-type lib \
       --emit=dep-info,metadata,link \
-      --out-dir build \
-      example.rs
+      --out-dir out \
+      $GEN_DIR/example.rs
+
 rustc --edition=2021 --crate-name example --crate-type bin \
-      --extern example=build/libexample.rlib \
-      -l example -L build \
-      --out-dir build \
+      --extern example=out/libexample.rlib \
+      -l example -L out \
+      --out-dir out \
       user_impl.rs
