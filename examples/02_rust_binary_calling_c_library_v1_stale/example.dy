@@ -1,0 +1,35 @@
+/******************************************************************
+ * This is a example of the capabilities that dandiya provides.
+ * For example: this is a block-comment that will be faithfully
+ * preserved in the output
+ *****************************************************************/
+
+// Result codes that can be returned
+const EXAMPLE_SUCCESS = 0;
+const EXAMPLE_ERR_AGAIN = 1;
+const EXAMPLE_ERR_UNKNOWN = 2;
+
+// Example context: opaque
+opaque example_ctx;
+
+// Packet structure
+struct example_packet {
+  len: u16,
+  dat: [u8; 1500],
+}
+
+// Batch of packets
+struct example_batch {
+  num: u8,
+  pkts: [example_packet; 16],
+}
+
+// Create a new context
+fn(v1) example_new() -> *example_ctx;
+fn(v2) example_new(n: u8) -> *example_ctx;
+
+// Destroy a context
+fn(v1) example_delete(ctx: *example_ctx);
+
+// Retrieve a batch of packets
+fn(v1) example_fetch_batch(ctx: *example_ctx, b: *example_batch) -> u64;
